@@ -93,6 +93,35 @@ test('missing Codex home returns empty JSON', async t => {
   assert.equal(result.filesScanned, 1);
 });
 
+test('Markdown CLI emits a complete report with window and strict context', async t => {
+  const root = await fixture(t);
+  const output = run(['--codex-dir', root, '--markdown', '--days', '30', '--limit', '1']);
+  assert.ok(output.startsWith('# Codex Skill 使用报告\n'));
+  assert.match(output, /\| Skill 数 \| 3 \|/);
+  assert.match(output, /\| \d+ \| explicit \|/);
+  assert.match(output, /\| \d+ \| sample \|/);
+  assert.match(output, /\| \d+ \| second \|/);
+  assert.match(output, /最近 30 天/);
+  assert.match(output, /strict：false/);
+  assert.doesNotMatch(output, /more skills/);
+  const strict = run(['--codex-dir', root, '--markdown', '--strict']);
+  assert.match(strict, /\| Skill 数 \| 1 \|/);
+  assert.match(strict, /strict：true/);
+  assert.doesNotMatch(strict, /\| \d+ \| sample \|/);
+});
+
+test('Markdown CLI handles missing data without a banner', async t => {
+  const root = await fixture(t);
+  const output = run(['--codex-dir', join(root, 'missing'), '--markdown']);
+  assert.ok(output.startsWith('# Codex Skill 使用报告\n'));
+  assert.match(output, /没有可用的 Skill 使用记录/);
+  assert.match(output, /统计窗口：全部历史/);
+});
+
+test('conflicting output modes are rejected before scanning', () => {
+  run(['--markdown', '--json'], false);
+});
+
 for (const args of [['--help'], ['--help', '--json'], ['-h']]) {
   test(`help ${args.join(' ')}`, () => {
     const output = run(args);

@@ -9,7 +9,7 @@
 - 按使用记录数展示 Skill 排名和最近记录时间。
 - 按最近 N 天筛选，支持仅统计明确记录。
 - 自动合并重复信号，保留 Skill 名称别名。
-- 输出终端表格或完整 JSON；JSON 同时包含按日期、项目目录划分的计数。
+- 输出终端表格、完整 JSON 或 Markdown 报告；JSON 同时包含按日期、项目目录划分的计数。
 - 支持指定 Codex 数据目录，读取当前及已归档的会话日志。
 
 > 统计反映日志中的使用证据，不代表 Skill 成功执行次数或任务完成质量。
@@ -60,6 +60,9 @@ node ./dist/index.mjs --codex-dir "D:/Codex Data/.codex" --days 30
 # 输出完整 JSON
 node ./dist/index.mjs --days 30 --json
 
+# 输出完整 Markdown 使用报告
+node ./dist/index.mjs --days 30 --markdown
+
 # 查看帮助和版本
 node ./dist/index.mjs --help
 node ./dist/index.mjs --version
@@ -73,11 +76,12 @@ node ./dist/index.mjs --version
 | `--limit N` / `-l N` | 表格最多展示 N 行；N 为非负整数，0 表示全部 | 25 |
 | `--strict` | 排除所有静态读取推断，只保留明确记录 | 关闭 |
 | `--json` | 标准输出为完整 JSON，无表格或横幅 | 关闭 |
+| `--markdown` | 标准输出为完整 Skill Markdown 报告，与 `--json` 互斥 | 关闭 |
 | `--codex-dir PATH` | Codex 数据根目录 | `~/.codex` |
 | `--help` / `-h` | 查看帮助 | — |
 | `--version` / `-v` | 查看版本 | — |
 
-`--limit` 只影响表格展示，不改变汇总值或 JSON 中的 Skill 列表。未知参数、位置参数和非法数值会报错并以非零状态退出；参数错误在扫描日志前被拒绝。
+`--limit` 只影响表格展示，不改变汇总值、JSON 或 Markdown 中的完整 Skill 列表。未知参数、位置参数、互斥输出选项和非法数值会报错并以非零状态退出；参数错误在扫描日志前被拒绝。
 
 ## 怎样理解结果
 
@@ -92,6 +96,17 @@ node ./dist/index.mjs --version
 默认同时统计明确与推断记录。希望采用更保守的口径时，加上 `--strict`。即使是明确记录，也不能单凭日志判断 Skill 是否成功执行。
 
 结果按 Total 降序排列，同次数时按名称排序。日期明细按运行机器的本地日期统计；`--days` 是滚动时间窗口，不是从某天零点开始计算。
+
+## 导出 Markdown 报告
+
+报告包含概览、统计窗口、strict 状态、时区、完整 Skill 排名和统计限制，不展开项目目录等明细。可直接输出到终端，或在 PowerShell 7 保存为文件：
+
+```powershell
+New-Item -ItemType Directory -Force .local | Out-Null
+node ./dist/index.mjs --days 30 --markdown | Set-Content -Encoding utf8 .local/skill-usage.md
+```
+
+报告不受 `--limit` 截断。阅读时使用支持管道表格的 Markdown 阅读器；名称中的结构字符会转义。格式说明见 [Markdown 报告](docs/markdown-report.md)。
 
 ## 使用 JSON
 

@@ -20,3 +20,6 @@
 
 ## Validation
 仅使用内存合成报告及现有 CLI 临时合成日志。覆盖混合证据、上下文、排序、不截断、空统计、null 时间、特殊字符及嵌套冻结输入。顺序执行类型检查、现有测试、显式新测试编译与运行、CLI 回归、OpenSpec 严格校验和差异检查，避免生成目录竞争。验证完成后在功能分支本地提交。
+
+## 总控 CLI 接线
+新增布尔参数 --markdown，默认仍为 Skill 表格；与 --json 同时使用时由严格预检在扫描前拒绝。无 JSON 或 Markdown 标志的行为不变。CLI 将同一聚合结果与窗口、strict、时区上下文组装为完整 SkillUsageReport，再交给 JSON 序列化或 renderMarkdown；两种机器/文档输出均无横幅，--limit 仅限制终端表格。新报告测试加入 pnpm run test，CLI 合成回归验证完整输出、strict、空数据及冲突参数。后续 MCP 使用独立选择参数，Markdown 本轮仅适用于 Skill。

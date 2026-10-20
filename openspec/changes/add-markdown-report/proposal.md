@@ -15,3 +15,6 @@
 
 ## Impact
 仅新增 src/render/markdown.ts、tests/markdown.test.ts、docs/markdown-report.md 与本 change。无新增依赖、面板、服务或真实日志采集。不修改 CLI、聚合器、公共类型、主文档或项目脚本；不合并、推送、发布或自动归档。
+
+## 总控集成阶段
+以上文件边界适用于功能分支交付。模块提交 f5c3e39 经总控独立验收后，用户授权在 main 接入 --markdown、统一测试入口与使用文档。--markdown 与 --json 互斥，冲突在扫描前报错；Markdown 输出不含 CLI 横幅、不受 --limit 截断。默认表格、原 JSON 字段及原有参数保持兼容。总控本地提交，不推送、不归档或删除 worktree。

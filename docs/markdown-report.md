@@ -12,7 +12,7 @@ function formatReport(report: SkillUsageReport): string {
 }
 ```
 
-这是源码级接口，尚未建立 npm 库导出或 CLI 参数。总控需接入 Markdown 输出参数、正式测试脚本和 README 使用说明；本模块不读取真实日志，也不自行保存文件。
+CLI 已接入 `node ./dist/index.mjs --days 30 --markdown`，可与 --strict、--codex-dir 配合使用；与 --json 互斥，冲突在扫描前拒绝。输出没有 CLI 横幅，--limit 不截断报告。保存示例见 README。模块仍是源码级接口，未建立 npm 库导出；渲染器不读取日志，也不自行保存文件。
 
 报告包含中文概览、版本与来源、生成时间、滚动窗口、strict、日期分桶时区、候选扫描路径数和耗时，随后展示全部 Skill 排名及最近记录时间。排名按 total 降序、同数按名称 localeCompare 排序，不受终端表格默认 25 行限制。输入对象和数组不会改变；重复调用不读取时钟或运行机器时区。
 
@@ -22,9 +22,10 @@ function formatReport(report: SkillUsageReport): string {
 
 本报告不展开 daily、projects、sources 或 aliases 明细。计数代表去重后的使用证据，不代表执行成功或任务质量；filesScanned 是候选 rollout 数加 history 路径，不能当作成功读取数。其他契约见 [公共契约](usage-contract.md)。
 
-本分支显式编译并运行新测试（项目 test 脚本尚未包含它）：
+报告测试已接入项目 test 脚本；也可以单独编译后执行：
 
 ```powershell
+pnpm run test
 pnpm exec tsc -p tsconfig.test.json
 node --test .test-dist/tests/markdown.test.js
 ```

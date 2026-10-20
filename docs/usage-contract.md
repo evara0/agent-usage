@@ -2,7 +2,7 @@
 
 ## 当前范围
 
-本轮只提供源码级契约，未增加 npm 库导出。版本常量及类型位于 `src/contracts.ts`，报告组装位于 `src/report.ts`。现有命令、表格和 Skill 聚合算法保持原样；MCP 采集和 Markdown 渲染尚未实现。
+公共契约是源码级接口，未增加 npm 库导出。版本常量及类型位于 `src/contracts.ts`，报告组装位于 `src/report.ts`。Skill 聚合算法保持原样；Markdown 渲染已通过 --markdown 接入，见 [使用说明](markdown-report.md)。MCP 模块仍待总控集成。
 
 ## Skill 报告
 

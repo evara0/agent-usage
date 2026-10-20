@@ -42,3 +42,14 @@
 #### Scenario: 模块验收完成
 - **WHEN** 模块及新测试完成本地验证
 - **THEN** 本分支只提交授权文件，不修改公共契约与 CLI，不推送、合并或自动归档
+
+### Requirement: 总控 CLI 输出接线
+总控集成 SHALL 提供 --markdown 输出完整 Skill Markdown 报告，保留原表格与 JSON 行为，并将报告测试加入正式测试入口。
+
+#### Scenario: 完整文档输出
+- **WHEN** 用户使用 --markdown 以及可选的 --days、--strict、--codex-dir、--limit
+- **THEN** 标准输出以报告标题开始，无 CLI 横幅，包含完整排名，limit 不截断文档，窗口与 strict 正确传入
+
+#### Scenario: 输出冲突
+- **WHEN** --markdown 与 --json 同时使用
+- **THEN** 在扫描日志前以非零状态退出，stdout 为空，stderr 解释互斥选项

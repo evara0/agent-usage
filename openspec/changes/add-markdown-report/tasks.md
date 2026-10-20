@@ -12,7 +12,7 @@
 - [x] 3.2 OpenSpec 严格校验、范围和差异检查，记录实际验收结果
 - [x] 3.3 在 codex/markdown-report 本地提交并报告接口与总控待办
 
-## 4. 总控集成（本分支不实施）
-- [ ] 4.1 接入 CLI Markdown 输出参数及对应行为验证
-- [ ] 4.2 将 Markdown 测试加入 package.json 的正式测试入口
-- [ ] 4.3 更新 README 的 Markdown 使用说明
+## 4. 总控集成
+- [x] 4.1 接入 CLI Markdown 输出参数及对应行为验证
+- [x] 4.2 将 Markdown 测试加入 package.json 的正式测试入口
+- [x] 4.3 更新 README 的 Markdown 使用说明

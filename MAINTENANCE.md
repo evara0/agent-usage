@@ -21,6 +21,8 @@ TypeScript / Node ESM CLI；入口 src/index.ts，采集与静态解析 src/adap
 
 程序单次运行后退出；中断用Ctrl+C，再次执行即重新扫描。使用 --codex-dir 指定数据目录。无常驻进程，无需重启服务。
 
+使用 `node ./dist/index.mjs --days 30 --markdown` 输出完整 Skill Markdown 报告；与 --json 互斥，--limit 不截断报告。渲染器在 src/render/markdown.ts，输出与保存用法见 README。
+
 ## 改什么，怎么生效
 
 改 src/ 后执行测试、类型检查与 test:cli（包含构建）；依赖变更用pnpm更新唯一锁文件。改README/OpenSpec无需构建。日志内容不进入Git或包；handoff仅本地保留，不自动同步。包的files仅包含dist。
