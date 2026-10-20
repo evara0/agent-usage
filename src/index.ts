@@ -5,6 +5,7 @@ import { renderHeader } from 'gunshi/renderer';
 import { collectCodexEvents } from './adapters/codex.js';
 import { aggregate } from './aggregate.js';
 import { renderTable } from './render/table.js';
+import { createSkillUsageReport } from './report.js';
 
 const command = define({
   name: 'agent-usage',
@@ -30,10 +31,11 @@ const command = define({
     const result = aggregate(scan.events, { days, strict });
     const elapsedMs = performance.now() - started;
     if (ctx.values.json) {
-      console.log(JSON.stringify({
-        generatedAt: new Date().toISOString(), source: 'codex', windowDays: days ?? null,
-        filesScanned: scan.filesScanned, elapsedMs, totals: result.totals, skills: result.skills,
-      }, null, 2));
+      console.log(JSON.stringify(createSkillUsageReport(result, {
+        generatedAt: new Date().toISOString(), windowDays: days ?? null,
+        filesScanned: scan.filesScanned, elapsedMs,
+        strict: Boolean(strict), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }), null, 2));
     } else {
       console.log(renderTable(result, { limit, days, filesScanned: scan.filesScanned, elapsedMs }));
     }

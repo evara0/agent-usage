@@ -1,22 +1,8 @@
 import type { InvocationEvent } from './types.js';
+import type { AggregateResult, SkillStats } from './contracts.js';
 
-export interface SkillStats {
-  skill: string;
-  total: number;
-  manual: number;
-  auto: number;
-  /** Subset of `auto` that came from heuristic signals (SKILL.md reads). */
-  inferredAuto: number;
-  lastUsedAt: string | null;
-  /** Source ("claude" | "codex") -> count. */
-  sources: Record<string, number>;
-  /** Local-timezone YYYY-MM-DD -> count. */
-  daily: Record<string, number>;
-  /** cwd -> count. */
-  projects: Record<string, number>;
-  /** Raw on-disk names that normalized to this skill. */
-  aliases: string[];
-}
+// 保留现有源码调用方的类型导入路径。
+export type { AggregateResult, SkillStats } from './contracts.js';
 
 export interface AggregateOptions {
   /** Only count invocations from the last N days. */
@@ -25,11 +11,6 @@ export interface AggregateOptions {
   includeSubagents?: boolean;
   /** Drop heuristic (inferred) auto signals. */
   strict?: boolean;
-}
-
-export interface AggregateResult {
-  skills: SkillStats[];
-  totals: { invocations: number; manual: number; auto: number; skills: number };
 }
 
 export function aggregate(events: InvocationEvent[], opts: AggregateOptions = {}): AggregateResult {

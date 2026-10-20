@@ -43,15 +43,29 @@ for (const strict of [false, true]) {
     const root = await fixture(t);
     const result = JSON.parse(run(['--codex-dir', root, '--json', ...(strict ? ['--strict'] : [])]));
     assert.equal(result.source, 'codex');
+    assert.equal(result.schemaVersion, 1);
+    assert.equal(result.strict, strict);
+    assert.equal(result.timeZone, Intl.DateTimeFormat().resolvedOptions().timeZone);
     assert.equal(result.windowDays, null);
     assert.equal(result.totals.invocations, strict ? 1 : 3);
     assert.equal(result.totals.manual, 1);
     assert.ok(result.elapsedMs >= 0);
+    assert.deepEqual(Object.keys(result).sort(), [
+      'schemaVersion', 'generatedAt', 'source', 'windowDays', 'filesScanned',
+      'elapsedMs', 'totals', 'skills', 'strict', 'timeZone',
+    ].sort());
+    assert.deepEqual(result.totals, {
+      invocations: strict ? 1 : 3, manual: 1, auto: strict ? 0 : 2, skills: strict ? 1 : 3,
+    });
     for (const skill of result.skills) {
       assert.ok(Object.keys(skill.daily).length);
       assert.equal(skill.projects['C:/demo'], 1);
       assert.deepEqual(skill.aliases, [skill.skill]);
       assert.equal(skill.total, skill.manual + skill.auto);
+      assert.deepEqual(Object.keys(skill).sort(), [
+        'skill', 'total', 'manual', 'auto', 'inferredAuto', 'lastUsedAt',
+        'sources', 'daily', 'projects', 'aliases',
+      ].sort());
       if (strict) assert.equal(skill.inferredAuto, 0);
     }
   });

@@ -36,6 +36,8 @@ node ./dist/index.mjs --codex-dir C:/Users/wangz/.codex --json
 
 JSON 包含 generatedAt、source: codex、windowDays、filesScanned、elapsedMs、totals 和完整 skills。每项保留 manual、auto、inferredAuto、sources、daily、projects、aliases、lastUsedAt；daily 按运行机器本地日期。filesScanned 是候选 rollout 文件数加 history 路径，即使 history 不存在也加1，不是成功读取数。损坏行跳过。动态参数、任意 shell、here-document 不保证识别；不支持可靠区分子 Agent。
 
+JSON 另含 schemaVersion: 1、strict 和 timeZone，原字段保持原类型与口径；读取器应允许附加字段。公共类型位于 src/contracts.ts，报告由 src/report.ts 组装。MCP 仅定义类型，尚未采集；Markdown 报告尚未实现。契约与后续分工见 [公共契约](docs/usage-contract.md)。
+
 ## 开发与验证
 
 ```powershell
@@ -43,9 +45,10 @@ pnpm run test
 pnpm run typecheck
 pnpm run test:cli # 包含构建
 openspec validate add-skill-statistics --strict --no-interactive
+openspec validate establish-usage-contract --strict --no-interactive
 ```
 
-测试只使用临时合成日志。handoff、真实JSONL、node_modules、dist、.test-dist 均被Git忽略。OpenSpec变更位于 openspec/changes/add-skill-statistics，未归档。
+测试只使用临时合成日志，包含核心、报告契约、MCP 类型负例和 CLI 回归。handoff、真实JSONL、node_modules、dist、.test-dist 均被Git忽略。OpenSpec变更位于 openspec/changes/add-skill-statistics 与 establish-usage-contract，均未归档。本地 main 以首次提交 060098b 建立；后续并行功能应从公共契约验收后的最终提交启动。
 
 ## 来源
 
