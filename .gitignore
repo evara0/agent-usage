@@ -1,0 +1,11 @@
+/handoff/
+/node_modules/
+/dist/
+/.test-dist/
+/.local/
+/.pnpm-store/
+*.log
+*.jsonl
+.env
+.env.*
+!.env.example

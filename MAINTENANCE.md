@@ -1,0 +1,34 @@
+---
+title: "agent-usage · 项目维护卡"
+project: "agent-usage"
+updated: "2026-10-20"
+status: "本地源码与合成测试核验；无远端部署"
+environments:
+  - "Windows 本地 Node.js"
+---
+
+# agent-usage · 项目维护卡
+
+修改源码后构建，再重新运行命令。项目统计本地 Codex Skill 记录。
+
+## 项目是什么
+
+TypeScript / Node ESM CLI；入口 src/index.ts，采集与静态解析 src/adapters/，聚合 src/aggregate.ts，表格 src/render/table.ts。没有前端、服务、数据库或监听端口。数据来自用户Codex目录，仅只读扫描。依赖由 package.json 与 pnpm-lock.yaml 管理，tsdown构建，node:test验证。
+
+## 本地怎么运行
+
+在 G:/agent-usage：`pnpm install --frozen-lockfile`，`pnpm run build`，`node ./dist/index.mjs --days 30`。缓存齐全可安装时加 --offline。需要Node >=20；当前Windows验证不代表已经覆盖所有Node版本和POSIX平台。
+
+程序单次运行后退出；中断用Ctrl+C，再次执行即重新扫描。使用 --codex-dir 指定数据目录。无常驻进程，无需重启服务。
+
+## 改什么，怎么生效
+
+改 src/ 后执行测试、类型检查与 test:cli（包含构建）；依赖变更用pnpm更新唯一锁文件。改README/OpenSpec无需构建。日志内容不进入Git或包；handoff仅本地保留，不自动同步。包的files仅包含dist。
+
+## 程序更新到本地
+
+`pnpm run test`、`pnpm run typecheck`、`pnpm run test:cli`，然后重新运行dist/index.mjs。构建清理并替换dist，测试输出在.test-dist；不会改动Codex数据。无远端部署、自动更新或发布流程。
+
+## 出问题先做什么
+
+JSON应可整体解析；空统计先检查 --codex-dir、--days 和 --strict。检查stderr错误信息与退出码。损坏JSONL行会跳过，filesScanned不代表成功读取数。保留handoff和原始Codex数据；当前仓库尚无提交，不具备Git提交回滚基线。不得使用清理命令删除原始日志。统计限制与来源见README。
