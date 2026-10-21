@@ -14,6 +14,8 @@ function formatReport(report: SkillUsageReport): string {
 
 CLI 已接入 `node ./dist/index.mjs --days 30 --markdown`，可与 --strict、--codex-dir 配合使用；与 --json 互斥，冲突在扫描前拒绝。输出没有 CLI 横幅，--limit 不截断报告。保存示例见 README。模块仍是源码级接口，未建立 npm 库导出；渲染器不读取日志，也不自行保存文件。
 
+保存文件时使用 `node ./dist/index.mjs --days 30 --markdown --output .local/skill-usage.md`。CLI 的输出模块直接写无 BOM UTF-8、创建父目录并覆盖目标文件，绕过 PowerShell 原生进程管道的文本解码；渲染器仍只返回字符串。指定 --output 时 stdout 为空，写入错误通过 stderr 和非零退出码报告。
+
 报告包含中文概览、版本与来源、生成时间、滚动窗口、strict、日期分桶时区、候选扫描路径数和耗时，随后展示全部 Skill 排名及最近记录时间。排名按 total 降序、同数按名称 localeCompare 排序，不受终端表格默认 25 行限制。输入对象和数组不会改变；重复调用不读取时钟或运行机器时区。
 
 明确数使用 `total - inferredAuto`，推断数使用 `inferredAuto`；概览的推断总数来自完整 skills 的该字段之和，其他概览总数使用输入 totals。`auto` 包含明确自动注入和推断，不能将它全部视为推断。窗口与 strict 必须由上游兑现；渲染器不验证或再次过滤它们。最近记录时间保留输入 ISO 值，null 显示“无记录”。空 skills 显示无可用记录并保留上下文与限制说明。

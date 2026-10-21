@@ -7,6 +7,7 @@
 ```powershell
 node ./dist/index.mjs --mcp --days 30 --limit 10
 node ./dist/index.mjs --mcp --days 30 --json
+node ./dist/index.mjs --mcp --days 30 --json --output .local/mcp-usage.json
 ```
 
 默认仍为 Skill。--mcp 复用 --days、--codex-dir、--limit；与 Skill 专用 --strict 和 --markdown 互斥，冲突在扫描前报错。limit 只截断表格，不改变总计或 JSON。表格展示调用状态、可靠耗时样本均值和全部扫描质量计数；没有耗时样本显示 -，观测零耗时显示 0.00。

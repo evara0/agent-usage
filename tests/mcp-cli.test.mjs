@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { test } from 'node:test';
@@ -119,6 +119,15 @@ test('Skill JSON and Markdown still work on a dataset containing MCP calls', asy
   assert.ok(markdown.startsWith('# Codex Skill 使用报告\n'));
   assert.match(markdown, /only-skill/);
   assert.doesNotMatch(markdown, /mcp__demo/);
+});
+
+test('MCP JSON exports directly as UTF-8 without stdout', async t => {
+  const root = await fixture(t);
+  const target = join(root, '导出', 'mcp.json');
+  assert.equal(run(['--codex-dir', root, '--mcp', '--json', '--output', target]), '');
+  const report = JSON.parse(await readFile(target, 'utf8'));
+  assert.equal(report.kind, 'mcp');
+  assert.equal(report.totals.invocations, 5);
 });
 
 for (const args of [

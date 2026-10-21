@@ -11,6 +11,7 @@ import { collectMcpEvents } from './adapters/mcp.js';
 import { aggregateMcpEvents } from './mcp-aggregate.js';
 import { renderMcpTable } from './render/mcp-table.js';
 import { USAGE_SCHEMA_VERSION } from './contracts.js';
+import { emitReport } from './output.js';
 
 const command = define({
   name: 'agent-usage',
@@ -19,6 +20,7 @@ const command = define({
     json: { type: 'boolean', description: 'Output complete machine-readable JSON' },
     markdown: { type: 'boolean', description: 'Output a complete Skill Markdown report' },
     mcp: { type: 'boolean', description: 'Show MCP statistics instead of Skills (table or JSON)' },
+    output: { type: 'string', description: 'Write Markdown or JSON directly to a UTF-8 file (overwrites)' },
     days: { type: 'number', short: 'd', description: 'Rolling window of N days (positive finite number)' },
     limit: { type: 'number', short: 'l', default: 25, description: 'Maximum table rows (0 = all)' },
     strict: { type: 'boolean', description: 'Exclude inferred SKILL.md reads' },
@@ -39,11 +41,11 @@ const command = define({
       const result = aggregateMcpEvents(events, { days });
       const elapsedMs = performance.now() - started;
       if (ctx.values.json) {
-        console.log(JSON.stringify({
+        await emitReport(JSON.stringify({
           schemaVersion: USAGE_SCHEMA_VERSION, generatedAt: new Date().toISOString(),
           source: 'codex', kind: 'mcp', windowDays: days ?? null, elapsedMs,
           scan, totals: result.totals, tools: result.tools,
-        }, null, 2));
+        }, null, 2), ctx.values.output);
       } else {
         console.log(renderMcpTable(result, { limit, days, elapsedMs, scan }));
       }
@@ -58,7 +60,7 @@ const command = define({
         filesScanned: scan.filesScanned, elapsedMs,
         strict: Boolean(strict), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
-      console.log(ctx.values.markdown ? renderMarkdown(report) : JSON.stringify(report, null, 2));
+      await emitReport(ctx.values.markdown ? renderMarkdown(report) : JSON.stringify(report, null, 2), ctx.values.output);
     } else {
       console.log(renderTable(result, { limit, days, filesScanned: scan.filesScanned, elapsedMs }));
     }
@@ -78,6 +80,10 @@ options.help = { type: 'boolean', short: 'h' };
 options.version = { type: 'boolean', short: 'v' };
 try {
   const { values } = parseArgs({ args: argv, options, strict: true, allowPositionals: false });
+  if (values.output !== undefined && (!values.json && !values.markdown)) {
+    throw new Error('--output requires --json or --markdown');
+  }
+  if (typeof values.output === 'string' && !values.output.trim()) throw new Error('--output must not be empty');
   if (values.json && values.markdown) throw new Error('--json and --markdown are mutually exclusive');
   if (values.mcp && (values.strict || values.markdown)) {
     throw new Error('--strict and --markdown apply to Skills only; cannot combine with --mcp');
@@ -98,5 +104,5 @@ try {
 
 await cli(argv, command, {
   name: 'agent-usage', version: '0.1.0', description: 'Local Codex Skill and MCP evidence statistics',
-  renderHeader: async ctx => (ctx.values.json || ctx.values.markdown) && !('help' in ctx.values && ctx.values.help) ? '' : renderHeader(ctx),
+  renderHeader: async ctx => (ctx.values.json || ctx.values.markdown || ctx.values.output !== undefined) && !('help' in ctx.values && ctx.values.help) ? '' : renderHeader(ctx),
 });

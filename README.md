@@ -64,6 +64,9 @@ node ./dist/index.mjs --days 30 --json
 # 输出完整 Markdown 使用报告
 node ./dist/index.mjs --days 30 --markdown
 
+# 直接保存 UTF-8 Markdown 文件，避免 shell 管道转码
+node ./dist/index.mjs --days 30 --markdown --output .local/skill-usage.md
+
 # 查看最近 30 天的 MCP 工具调用
 node ./dist/index.mjs --mcp --days 30
 
@@ -85,6 +88,7 @@ node ./dist/index.mjs --version
 | `--json` | 标准输出为完整 JSON，无表格或横幅 | 关闭 |
 | `--markdown` | 标准输出为完整 Skill Markdown 报告，与 `--json` 互斥 | 关闭 |
 | `--mcp` | 选择 MCP 统计，支持表格和 JSON；与 `--strict`、`--markdown` 互斥 | 关闭，默认统计 Skill |
+| `--output PATH` | 与 `--markdown` 或 `--json` 配合，直接写无 BOM UTF-8 文件，创建父目录并覆盖同名文件 | 不写文件，输出到终端 |
 | `--codex-dir PATH` | Codex 数据根目录 | `~/.codex` |
 | `--help` / `-h` | 查看帮助 | — |
 | `--version` / `-v` | 查看版本 | — |
@@ -107,14 +111,15 @@ node ./dist/index.mjs --version
 
 ## 导出 Markdown 报告
 
-报告包含概览、统计窗口、strict 状态、时区、完整 Skill 排名和统计限制，不展开项目目录等明细。可直接输出到终端，或在 PowerShell 7 保存为文件：
+报告包含概览、统计窗口、strict 状态、时区、完整 Skill 排名和统计限制，不展开项目目录等明细。推荐由程序直接写入 UTF-8 文件：
 
 ```powershell
-New-Item -ItemType Directory -Force .local | Out-Null
-node ./dist/index.mjs --days 30 --markdown | Set-Content -Encoding utf8 .local/skill-usage.md
+node ./dist/index.mjs --days 30 --markdown --output .local/skill-usage.md
 ```
 
-报告不受 `--limit` 截断。阅读时使用支持管道表格的 Markdown 阅读器；名称中的结构字符会转义。格式说明见 [Markdown 报告](docs/markdown-report.md)。
+程序会创建缺失的父目录、覆盖指定文件，成功时不向终端输出报告正文。路径有空格时加引号。直接写入绕过 shell 文本解码；Windows 下仅在管道末尾指定 `Set-Content -Encoding utf8`，不能修正前面已经发生的错误转码。如果旧报告已出现中文乱码，请使用相同统计选项重新导出。
+
+报告不受 `--limit` 截断。阅读时使用支持管道表格的 Markdown 阅读器；名称中的结构字符会转义（如源码中的 `&#58;` 在预览中显示为冒号，这不属于中文编码乱码）。格式说明见 [Markdown 报告](docs/markdown-report.md)。
 
 ## 使用 Skill JSON
 
@@ -161,11 +166,10 @@ $report = node ./dist/index.mjs --days 30 --json | ConvertFrom-Json
 $report.skills | Select-Object skill, total, inferredAuto, lastUsedAt
 ```
 
-在 PowerShell 7 中保存 JSON 到已被 Git 忽略的本地目录：
+直接保存 UTF-8 JSON 到已被 Git 忽略的本地目录：
 
 ```powershell
-New-Item -ItemType Directory -Force .local | Out-Null
-node ./dist/index.mjs --days 30 --json | Set-Content -Encoding utf8 .local/skill-usage.json
+node ./dist/index.mjs --days 30 --json --output .local/skill-usage.json
 ```
 
 导出的 JSON 包含项目目录等本机信息，分享前请检查内容。
@@ -175,6 +179,7 @@ node ./dist/index.mjs --days 30 --json | Set-Content -Encoding utf8 .local/skill
 ```powershell
 node ./dist/index.mjs --mcp --days 30 --limit 10
 node ./dist/index.mjs --mcp --codex-dir "D:/Codex Data/.codex" --json
+node ./dist/index.mjs --mcp --days 30 --json --output .local/mcp-usage.json
 ```
 
 MCP 表格按服务端和完整工具名分组，展示以下信息：

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { test } from 'node:test';
@@ -121,6 +121,34 @@ test('Markdown CLI handles missing data without a banner', async t => {
 test('conflicting output modes are rejected before scanning', () => {
   run(['--markdown', '--json'], false);
 });
+
+test('direct Markdown file output preserves UTF-8 Chinese and overwrites without shell decoding', async t => {
+  const root = await fixture(t);
+  const outputPath = join(root, '中文 reports', '使用报告.md');
+  assert.equal(run(['--codex-dir', root, '--markdown', '--output', outputPath]), '');
+  const bytes = await readFile(outputPath);
+  assert.notDeepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+  assert.ok(bytes.toString('utf8').startsWith('# Codex Skill 使用报告\n'));
+  assert.match(bytes.toString('utf8'), /统计上下文/);
+  assert.ok(bytes.toString('utf8').endsWith('\n'));
+  await writeFile(outputPath, 'obsolete content');
+  assert.equal(run(['--codex-dir', root, '--markdown', '--strict', '--output', outputPath]), '');
+  assert.match(await readFile(outputPath, 'utf8'), /strict：true/);
+  assert.doesNotMatch(await readFile(outputPath, 'utf8'), /obsolete content/);
+});
+
+test('direct JSON output remains parseable and write errors fail with empty stdout', async t => {
+  const root = await fixture(t);
+  const outputPath = join(root, 'nested', 'report.json');
+  assert.equal(run(['--codex-dir', root, '--json', '--output', outputPath]), '');
+  const report = JSON.parse(await readFile(outputPath, 'utf8'));
+  assert.equal(report.totals.invocations, 3);
+  run(['--codex-dir', root, '--markdown', '--output', root], false);
+});
+
+for (const args of [['--output', 'unused.md'], ['--output'], ['--json', '--output=']]) {
+  test(`invalid file export rejected: ${args.join(' ')}`, () => run(args, false));
+}
 
 for (const args of [['--help'], ['--help', '--json'], ['-h']]) {
   test(`help ${args.join(' ')}`, () => {

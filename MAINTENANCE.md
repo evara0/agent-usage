@@ -23,6 +23,8 @@ TypeScript / Node ESM CLI；入口 src/index.ts，Skill 采集与静态解析在
 
 使用 `node ./dist/index.mjs --days 30 --markdown` 输出完整 Skill Markdown 报告；与 --json 互斥，--limit 不截断报告。渲染器在 src/render/markdown.ts，输出与保存用法见 README。
 
+保存 Markdown/JSON 时追加 `--output .local/skill-usage.md`（JSON 使用对应文件名），由 src/output.ts 直接写无 BOM UTF-8，自动创建父目录并覆盖目标文件；仅文件输出时 stdout 为空。不要依赖 shell 管道转码保存中文。已出现乱码的报告保留或备份后，用相同选项重新生成；原始日志不受影响。
+
 使用 `node ./dist/index.mjs --mcp --days 30` 查看 MCP 表格，添加 --json 输出完整 MCP 报告。--mcp 与 --strict/--markdown 互斥；默认仍为 Skill 统计。MCP 不访问外部服务或启用遥测。
 
 ## 改什么，怎么生效
