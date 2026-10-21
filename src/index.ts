@@ -12,14 +12,18 @@ import { aggregateMcpEvents } from './mcp-aggregate.js';
 import { renderMcpTable } from './render/mcp-table.js';
 import { USAGE_SCHEMA_VERSION } from './contracts.js';
 import { emitReport } from './output.js';
+import { collectHookEvents } from './adapters/hooks.js';
+import { aggregateHookEvents } from './hooks-aggregate.js';
+import { renderHooksTable } from './render/hooks-table.js';
 
 const command = define({
   name: 'agent-usage',
-  description: 'Local Codex Skill and MCP evidence statistics',
+  description: 'Local Codex Skill, MCP and offline Hook evidence statistics',
   args: {
     json: { type: 'boolean', description: 'Output complete machine-readable JSON' },
     markdown: { type: 'boolean', description: 'Output a complete Skill Markdown report' },
     mcp: { type: 'boolean', description: 'Show MCP statistics instead of Skills (table or JSON)' },
+    hooks: { type: 'boolean', description: 'Show offline Hook notification statistics (table or JSON)' },
     output: { type: 'string', description: 'Write Markdown or JSON directly to a UTF-8 file (overwrites)' },
     days: { type: 'number', short: 'd', description: 'Rolling window of N days (positive finite number)' },
     limit: { type: 'number', short: 'l', default: 25, description: 'Maximum table rows (0 = all)' },
@@ -36,6 +40,18 @@ const command = define({
       throw new Error('--limit must be a non-negative safe integer');
     }
     const started = performance.now();
+    if (ctx.values.hooks) {
+      const { records, scan, coverage } = await collectHookEvents(ctx.values['codex-dir']);
+      const result = aggregateHookEvents(records, { days });
+      const elapsedMs = performance.now() - started;
+      if (ctx.values.json) {
+        await emitReport(JSON.stringify({
+          schemaVersion: 1, generatedAt: new Date().toISOString(), source: 'codex', kind: 'hooks',
+          windowDays: days ?? null, elapsedMs, scan, coverage, totals: result.totals, hooks: result.hooks,
+        }, null, 2), ctx.values.output);
+      } else console.log(renderHooksTable(result, { limit, days, elapsedMs, scan, coverage }));
+      return;
+    }
     if (ctx.values.mcp) {
       const { events, ...scan } = await collectMcpEvents(ctx.values['codex-dir']);
       const result = aggregateMcpEvents(events, { days });
@@ -85,6 +101,10 @@ try {
   }
   if (typeof values.output === 'string' && !values.output.trim()) throw new Error('--output must not be empty');
   if (values.json && values.markdown) throw new Error('--json and --markdown are mutually exclusive');
+  if (values.hooks && values.mcp) throw new Error('--hooks and --mcp are mutually exclusive');
+  if (values.hooks && (values.strict || values.markdown)) {
+    throw new Error('--strict and --markdown apply to Skills only; cannot combine with --hooks');
+  }
   if (values.mcp && (values.strict || values.markdown)) {
     throw new Error('--strict and --markdown apply to Skills only; cannot combine with --mcp');
   }
@@ -103,6 +123,6 @@ try {
 }
 
 await cli(argv, command, {
-  name: 'agent-usage', version: '0.1.0', description: 'Local Codex Skill and MCP evidence statistics',
+  name: 'agent-usage', version: '0.1.0', description: 'Local Codex Skill, MCP and offline Hook evidence statistics',
   renderHeader: async ctx => (ctx.values.json || ctx.values.markdown || ctx.values.output !== undefined) && !('help' in ctx.values && ctx.values.help) ? '' : renderHeader(ctx),
 });

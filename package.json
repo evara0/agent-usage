@@ -1,7 +1,7 @@
 {
   "name": "agent-usage",
   "version": "0.1.0",
-  "description": "Local Codex Skill and MCP evidence statistics CLI",
+  "description": "Local Codex Skill, MCP and offline Hook evidence statistics CLI",
   "type": "module",
   "bin": {
     "agent-usage": "dist/index.mjs",
@@ -11,8 +11,8 @@
     "dist"
   ],
   "scripts": {
-    "test": "tsc -p tsconfig.test.json && node --test .test-dist/tests/codex.test.js .test-dist/tests/contracts.test.js .test-dist/tests/markdown.test.js .test-dist/tests/mcp.test.js .test-dist/tests/mcp-table.test.js",
-    "test:cli": "tsdown && node --test tests/cli.test.mjs tests/mcp-cli.test.mjs",
+    "test": "tsc -p tsconfig.test.json && node --test .test-dist/tests/codex.test.js .test-dist/tests/contracts.test.js .test-dist/tests/markdown.test.js .test-dist/tests/mcp.test.js .test-dist/tests/mcp-table.test.js .test-dist/tests/hooks.test.js .test-dist/tests/hooks-table.test.js",
+    "test:cli": "tsdown && node --test tests/cli.test.mjs tests/mcp-cli.test.mjs tests/hooks-cli.test.mjs",
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "start": "node dist/index.mjs"

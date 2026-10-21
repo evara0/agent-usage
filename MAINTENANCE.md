@@ -9,7 +9,7 @@ environments:
 
 # agent-usage · 项目维护卡
 
-修改源码后构建，再重新运行命令。项目统计本地 Codex Skill 与 MCP 记录。
+修改源码后构建，再重新运行命令。项目统计本地 Codex Skill、MCP 及离线导入的 Hook 通知。
 
 ## 项目是什么
 
@@ -27,6 +27,8 @@ TypeScript / Node ESM CLI；入口 src/index.ts，Skill 采集与静态解析在
 
 使用 `node ./dist/index.mjs --mcp --days 30` 查看 MCP 表格，添加 --json 输出完整 MCP 报告。--mcp 与 --strict/--markdown 互斥；默认仍为 Skill 统计。MCP 不访问外部服务或启用遥测。
 
+使用 `node ./dist/index.mjs --hooks --days 30` 查看离线 Hook 通知统计；`--hooks --json --output .local/hooks.json` 直接保存 UTF-8。只扫描所选 Codex 目录的 `usage-hooks/**/*.jsonl`；这是本工具离线导入约定，不是原生 Codex 日志。没有导入时为空结果，配置存在不证明执行。`--hooks` 与 --mcp/--strict/--markdown 互斥。程序不会安装采集器、连接 App Server、运行 Hook 或修改配置。输入协议见 [Hooks 说明](docs/hooks-statistics.md)。
+
 ## 改什么，怎么生效
 
 改 src/ 后执行测试、类型检查与 test:cli（包含构建）；依赖变更用pnpm更新唯一锁文件。改README/OpenSpec无需构建。日志内容不进入Git或包；handoff仅本地保留，不自动同步。包的files仅包含dist。
@@ -42,3 +44,5 @@ TypeScript / Node ESM CLI；入口 src/index.ts，Skill 采集与静态解析在
 JSON应可整体解析；空统计先检查 --codex-dir、--days 和 --strict。检查stderr错误信息与退出码。损坏JSONL行会跳过，filesScanned不代表成功读取数。JSON 的 schemaVersion 为 1，读取器应允许附加字段。保留handoff和原始Codex数据；首次提交 060098b 是原 Skill CLI 回滚基线，使用 git log 查看后续契约提交。不得使用清理命令删除原始日志。统计限制与来源见README。
 
 MCP 空结果或 Unknown 较多时，先检查报告 scan 中的目录、读取、损坏行及身份计数，再核对 [MCP 覆盖范围](docs/mcp-statistics.md)。scan 是整次扫描的计数；MCP filesScanned 不含 history 路径，与 Skill 模式口径不同。无耗时样本不等于零耗时。
+
+Hooks 模块为 src/adapters/hooks.ts、src/hooks-types.ts、src/hooks-aggregate.ts、src/render/hooks-table.ts。空结果先检查 coverage.availability、scan.unsupportedFiles 与首行单位声明；声明单位须由导出方核实，不可猜测。本机 0.163.0-alpha.10.2 仅核对生成协议及有限原生样本，未找到可靠持久运行记录；异步通知、真实通知兼容和持续采集尚未验证。不改用户配置制造样本，不把 Hook 配置或遥测直方图当调用。保留原有数据，文档与合成输入边界见 Hooks 说明。
