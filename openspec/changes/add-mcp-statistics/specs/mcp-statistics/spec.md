@@ -55,3 +55,25 @@
 #### Scenario: 非法聚合输入
 - **WHEN** 输入记录违反公共契约或 days 不是正有限数
 - **THEN** 明确抛出参数错误，不输出貌似有效的统计结果
+
+### Requirement: 总控 CLI 路由与输出
+CLI SHALL 用 --mcp 选择 MCP 统计，保留默认 Skill 行为，支持 --days、--codex-dir、终端表格及完整 JSON；Skill 专用参数冲突必须在扫描前拒绝。
+
+#### Scenario: 独立 MCP JSON
+- **WHEN** 用户使用 --mcp --json
+- **THEN** 输出无横幅的 schemaVersion 1、kind mcp、source codex、生成时间、窗口、耗时、scan 质量计数、totals 与完整 tools，不返回原始事件、参数或正文，不改变旧 Skill JSON
+
+#### Scenario: 参数冲突
+- **WHEN** --mcp 与 --strict 或 --markdown 同时使用
+- **THEN** 在读取日志前非零退出，stdout 为空，stderr 解释参数适用范围
+
+### Requirement: MCP 终端可读性
+终端表格 SHALL 区分成功、失败、未知和可靠耗时样本，显示扫描质量，limit 只限制表格行。
+
+#### Scenario: 样本均值与完整总计
+- **WHEN** 部分调用没有耗时样本且 limit 隐藏部分工具
+- **THEN** 无样本显示 -，有观测零样本显示 0.00，均值只使用 durationSamples；总计与 JSON 保持全部工具结果
+
+#### Scenario: 扫描质量与特殊字符
+- **WHEN** 扫描存在缺失、读取错误、损坏行或工具名包含控制字符
+- **THEN** 展示扫描计数并说明不代表覆盖率，终端文本不产生注入的换行或控制序列

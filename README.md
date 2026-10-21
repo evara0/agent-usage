@@ -1,6 +1,6 @@
 # agent-usage
 
-在终端查看本地 **Codex Skill 使用记录**：哪些 Skill 最常出现、最近何时被使用，以及哪些记录来自明确调用、哪些来自静态读取推断。
+在终端查看本地 **Codex Skill 与 MCP 使用记录**：了解 Skill 的使用频次与证据类型，或查看 MCP 工具调用、明确结果和可用耗时样本。
 
 统计在本机完成，只读扫描 Codex 日志，不执行日志中的代码。无需 API Key、数据库或常驻服务。
 
@@ -11,6 +11,7 @@
 - 自动合并重复信号，保留 Skill 名称别名。
 - 输出终端表格、完整 JSON 或 Markdown 报告；JSON 同时包含按日期、项目目录划分的计数。
 - 支持指定 Codex 数据目录，读取当前及已归档的会话日志。
+- 使用 `--mcp` 查看按服务端和工具划分的调用统计，区分成功、失败、未知，并展示扫描质量计数。
 
 > 统计反映日志中的使用证据，不代表 Skill 成功执行次数或任务完成质量。
 
@@ -63,6 +64,12 @@ node ./dist/index.mjs --days 30 --json
 # 输出完整 Markdown 使用报告
 node ./dist/index.mjs --days 30 --markdown
 
+# 查看最近 30 天的 MCP 工具调用
+node ./dist/index.mjs --mcp --days 30
+
+# 输出完整 MCP JSON
+node ./dist/index.mjs --mcp --days 30 --json
+
 # 查看帮助和版本
 node ./dist/index.mjs --help
 node ./dist/index.mjs --version
@@ -74,16 +81,17 @@ node ./dist/index.mjs --version
 | --- | --- | --- |
 | `--days N` / `-d N` | 最近 N×24 小时；N 为正有限数，支持小数 | 全部历史 |
 | `--limit N` / `-l N` | 表格最多展示 N 行；N 为非负整数，0 表示全部 | 25 |
-| `--strict` | 排除所有静态读取推断，只保留明确记录 | 关闭 |
+| `--strict` | Skill 专用，排除所有静态读取推断，只保留明确记录 | 关闭 |
 | `--json` | 标准输出为完整 JSON，无表格或横幅 | 关闭 |
 | `--markdown` | 标准输出为完整 Skill Markdown 报告，与 `--json` 互斥 | 关闭 |
+| `--mcp` | 选择 MCP 统计，支持表格和 JSON；与 `--strict`、`--markdown` 互斥 | 关闭，默认统计 Skill |
 | `--codex-dir PATH` | Codex 数据根目录 | `~/.codex` |
 | `--help` / `-h` | 查看帮助 | — |
 | `--version` / `-v` | 查看版本 | — |
 
-`--limit` 只影响表格展示，不改变汇总值、JSON 或 Markdown 中的完整 Skill 列表。未知参数、位置参数、互斥输出选项和非法数值会报错并以非零状态退出；参数错误在扫描日志前被拒绝。
+`--limit` 只影响表格展示，不改变汇总值、JSON 的完整 Skill/工具列表或 Markdown 报告。未知参数、位置参数、互斥输出选项和非法数值会报错并以非零状态退出；参数错误在扫描日志前被拒绝。
 
-## 怎样理解结果
+## 怎样理解 Skill 结果
 
 | 表格列 | 含义 |
 | --- | --- |
@@ -108,7 +116,7 @@ node ./dist/index.mjs --days 30 --markdown | Set-Content -Encoding utf8 .local/s
 
 报告不受 `--limit` 截断。阅读时使用支持管道表格的 Markdown 阅读器；名称中的结构字符会转义。格式说明见 [Markdown 报告](docs/markdown-report.md)。
 
-## 使用 JSON
+## 使用 Skill JSON
 
 `--json` 适合脚本读取和后续分析。下面是包含一个 Skill 的虚构示例：
 
@@ -162,9 +170,34 @@ node ./dist/index.mjs --days 30 --json | Set-Content -Encoding utf8 .local/skill
 
 导出的 JSON 包含项目目录等本机信息，分享前请检查内容。
 
+## 使用 MCP 统计
+
+```powershell
+node ./dist/index.mjs --mcp --days 30 --limit 10
+node ./dist/index.mjs --mcp --codex-dir "D:/Codex Data/.codex" --json
+```
+
+MCP 表格按服务端和完整工具名分组，展示以下信息：
+
+| 列 | 含义 |
+| --- | --- |
+| Server / Tool | 明确识别的服务端和完整工具名；未知服务端为 `-`，不从名称猜测 |
+| Calls | 按会话和调用身份去重后的调用数 |
+| Succeeded / Failed | 有明确结果证据的成功/失败调用 |
+| Unknown | 结果缺失、冲突或证据不足的调用，不归入成功或失败 |
+| Avg ms | 可靠耗时样本的均值；没有样本显示 `-`，观测到零耗时显示 `0.00` |
+
+调用数满足 `Calls = Succeeded + Failed + Unknown`。耗时均值的分母是有可靠耗时的调用数，不是全部调用数，也不使用日志时间差推算执行耗时。
+
+`--mcp --json` 输出独立的 `kind: "mcp"` 报告，包含 `schemaVersion`、`generatedAt`、`source`、`windowDays`、`elapsedMs`、`scan`、`totals` 和完整 `tools`。每个工具包含调用计数、最新调用开始时间、`durationSamples` 和 `totalDurationMs`；不输出调用参数、结果正文或原始事件。原有 Skill JSON 格式保持不变。
+
+`scan` 以及表格末尾的计数用于排查数据质量：`filesRead/filesScanned` 表示完整读完的文件数/候选文件数，`missingDirectories` 表示缺失目录，`directoryErrors`、`unreadableFiles`、`malformedLines` 等暴露扫描问题。这些计数覆盖整次扫描，不随 `--days` 过滤，也不代表日志完整覆盖率。MCP 不读取 `history.jsonl`，其 `filesScanned` 不包含 Skill 模式额外计入的 history 路径。
+
+当前支持的日志结构和边界经过合成样本验证，尚未对真实 Codex 版本作全面兼容认证。没有明确结果标志的普通文本保留 Unknown；代码封装内没有独立调用记录的 MCP 调用可能无法计入。具体输入结构、扫描字段和覆盖限制见 [MCP 统计说明](docs/mcp-statistics.md)。
+
 ## 数据来源与统计边界
 
-工具读取所选 Codex 数据目录中的以下内容：
+Skill 统计读取所选 Codex 数据目录中的以下内容；MCP 仅读取两个会话目录：
 
 ```text
 .codex/
@@ -200,6 +233,10 @@ node ./dist/index.mjs --days 30 --json | Set-Content -Encoding utf8 .local/skill
 
 表格默认只展示前 25 行，JSON 始终包含完整列表。使用 `--limit 0` 查看全部表格行。
 
+**MCP 中 Unknown 较多，是否表示调用失败？**
+
+不表示。只有明确结果证据才计入 Succeeded 或 Failed；缺失结果、纯文本、冲突、取消或传输错误等可能保留 Unknown。先检查 scan 计数及支持的日志结构，不能直接用这些记录判断总体成功率。
+
 **提示找不到 `dist/index.mjs`？**
 
 先在项目根目录执行 `pnpm run build`，再运行命令。构建产物不保存在 Git 中。
@@ -214,7 +251,7 @@ pnpm run typecheck
 pnpm run test:cli
 ```
 
-`test` 编译并执行核心与契约测试，同时检查类型负例；`test:cli` 包含构建和 CLI 集成测试。测试使用临时合成日志。
+`test` 编译并执行核心、契约、Markdown、MCP 及 MCP 表格测试，同时检查类型负例；`test:cli` 包含构建及 Skill/MCP CLI 集成测试。测试使用临时合成日志。
 
 维护操作见 [项目维护卡](MAINTENANCE.md)，内部数据契约见 [公共契约](docs/usage-contract.md)。需求与验收记录保存在 [OpenSpec changes](openspec/changes/)；可用 `openspec validate <change-id> --strict --no-interactive` 校验对应变更。
 

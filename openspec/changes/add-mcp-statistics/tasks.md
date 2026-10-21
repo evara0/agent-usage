@@ -15,7 +15,7 @@
 - [x] 3.2 运行类型检查、现有核心/契约/CLI 回归、OpenSpec 严格校验和 git diff --check，记录结果
 - [x] 3.3 核对修改边界并本地提交 codex/mcp-statistics，交付 SHA 和待办
 
-## 4. 总控后续集成
+## 4. 总控集成
 
-- [ ] 4.1 总控接入 CLI 与表格，使用合成 CLI 测试验证
-- [ ] 4.2 总控将新测试接入 package.json 并更新 README，执行最终集成验收
+- [x] 4.1 总控接入 CLI 与表格，使用合成 CLI 测试验证
+- [x] 4.2 总控将新测试接入 package.json 并更新 README，执行最终集成验收

@@ -42,3 +42,14 @@ Git 切换、暂存与提交只更新当前功能 worktree 对应的 Git 管理�
 源码接口：collectMcpEvents(codexDir?: string): Promise<McpScanResult>；aggregateMcpEvents(records: McpCallRecord[], opts?: McpAggregateOptions): McpAggregateResult，选项为 days?: number。公共输出复用既有 McpCallRecord 与 McpAggregateResult，未绕过契约。
 
 模块实现无已知阻塞问题。总控仍需完成 CLI/表格接线、报告上下文与扫描异常展示、package.json 的新测试运行接入、主 README 更新及最终集成验收。第 4 组任务保持未勾选，change 不自动归档。
+
+## 总控集成验收 — 2026-10-21
+
+- 模块提交 227280190706743da8b81f8840ec2e62164f0bad，功能 worktree 干净、修改范围符合分工。总控独立重跑 43 项 MCP 测试、60 项原核心/契约测试、26 项 CLI 测试、类型检查及 OpenSpec 严格校验全部通过后，在 Markdown 已验收接线的 main 上合并。
+- 已接入 --mcp 选择 MCP 表格或 --json，复用 --days、--codex-dir 和表格 --limit；与 --strict/--markdown 冲突时预检在扫描前拒绝。默认 Skill 表格、既有 Skill JSON 与 Markdown 保持兼容。
+- MCP JSON 使用 kind: mcp 的独立信封，保留完整 tools 和 scan 质量计数，不输出原始事件、参数或结果正文。表格暴露成功/失败/未知与可靠样本均值，无耗时样本为 -，观测零值为 0.00；扫描计数覆盖全部输入，不代表覆盖率。
+- 首轮集成检查为模块测试 112/112、类型检查通过、CLI 37/38；新增目录错误场景把根路径设为普通文件，本机返回的错误分类不同于断言预期。按用户约定暂停并报告，得到“允许”后仅改为正常根目录内 sessions 是普通文件、archived_sessions 是目录的明确错误场景；未修改采集器或公共契约。
+- 修正后 pnpm run test：112/112；pnpm run typecheck：通过；pnpm run test:cli：构建通过，38/38。新入口实际包含 57 项 Skill 核心、3 项契约、6 项 Markdown、43 项 MCP、3 项 MCP 表格测试；CLI 包含原 26 项及新增 12 项集成回归。编译期契约负例继续检查。
+- 四个 change（add-skill-statistics、establish-usage-contract、add-markdown-report、add-mcp-statistics）严格校验全部通过；差异格式检查通过。README、MCP 文档、公共契约说明和维护卡已同步到已实现行为。
+- 全部功能验收仅使用合成数据，不读取真实 Codex 日志或调用外部 MCP 服务。环境仍为 Windows、Node v22.22.2；不声称跨平台或真实 Codex 版本完整兼容。
+- 总控仅在本地 main 提交集成；两个功能分支及 worktree 保留，未推送、发布、自动归档或删除 worktree。

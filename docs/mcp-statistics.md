@@ -1,6 +1,17 @@
 # MCP 统计模块
 
-本模块提供 TypeScript 源码级的本地 MCP 采集和聚合接口，输出遵循 [公共契约](usage-contract.md)。当前未接入 CLI、终端表格或 npm 库导出。只读取已有日志，不调用 MCP 服务，不修改 Codex 配置，也不启用遥测。
+本模块提供 TypeScript 源码级的本地 MCP 采集和聚合接口，输出遵循 [公共契约](usage-contract.md)。已接入 CLI 的 --mcp 表格与 JSON 输出，未建立 npm 库导出。只读取已有日志，不调用 MCP 服务，不修改 Codex 配置，也不启用遥测。
+
+## CLI 使用
+
+```powershell
+node ./dist/index.mjs --mcp --days 30 --limit 10
+node ./dist/index.mjs --mcp --days 30 --json
+```
+
+默认仍为 Skill。--mcp 复用 --days、--codex-dir、--limit；与 Skill 专用 --strict 和 --markdown 互斥，冲突在扫描前报错。limit 只截断表格，不改变总计或 JSON。表格展示调用状态、可靠耗时样本均值和全部扫描质量计数；没有耗时样本显示 -，观测零耗时显示 0.00。
+
+JSON 信封包含 schemaVersion: 1、kind: mcp、source: codex、generatedAt、windowDays、elapsedMs、scan、totals、完整 tools。scan 是下述 McpScanResult 去掉 events 的全部计数，反映整个扫描而非仅窗口内调用，不保留参数、正文或文件路径。Skill JSON 不变；本轮 Markdown 仅支持 Skill。
 
 ## 接口
 
@@ -76,13 +87,13 @@ const result = aggregateMcpEvents(scan.events, { days: 30 });
 
 文件读取失败前已经发现的损坏行/无效信号计数仍会保留，故扫描计数不等于接受事件的数量。未关联的普通 output 暂时保留最小元信息用于跨文件匹配，最终不会生成调用。
 
-## 覆盖限制及集成待办
+## 覆盖限制与验证
 
 调用统计仅反映受支持日志信号。`functions.exec` 或其他代码封装内的嵌套 MCP 调用、没有独立 callId 的信号、独立 App Server 通知流、遥测数据和非上述格式均未覆盖。不扫描用户配置恢复服务端映射，不将同名工具全局合并，不应用 Skill 的按秒或每会话去重规则。
 
-主入口仍为 Skill 统计。总控后续需要接入 CLI/表格、决定报告上下文与扫描异常展示策略、将 MCP 测试加入 package.json，并更新主 README；这些事项在当前 change 中保持未完成。
+主入口仍为 Skill 统计，--mcp 显式选择 MCP。CLI/表格、扫描质量展示、统一测试入口与主 README 已由总控集成；各项限制仍适用于 CLI 输出。
 
-新测试必须显式编译并执行，当前 `pnpm run test` 不会自动运行它：
+新测试已加入 pnpm run test，MCP CLI 测试已加入 pnpm run test:cli；也可独立编译执行模块测试：
 
 ```powershell
 node node_modules/typescript/bin/tsc -p tsconfig.test.json --outDir .local/mcp-test-dist

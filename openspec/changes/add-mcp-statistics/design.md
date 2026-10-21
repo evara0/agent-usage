@@ -42,3 +42,10 @@ aggregateMcpEvents(records: McpCallRecord[], opts?: {days?: number}): McpAggrega
 ## Migration Plan
 
 独立模块完成后提交功能分支供总控集成，不修改现有入口。回退可移除本模块提交。CLI、表格、测试脚本和 README 由总控后续接线；change 不自动归档。
+
+## 总控 CLI 集成
+1. 新增 --mcp 布尔选择参数，默认仍为 Skill。--days 与 --codex-dir 复用，--limit 仅截断终端表格；--mcp 与 Skill 专用的 --strict/--markdown 在扫描前互斥报错，不隐式忽略参数。保留旧参数与未知参数严格预检。--json 与 --markdown 的既有互斥保持不变。
+2. --mcp --json 输出独立信封：schemaVersion: 1、generatedAt、source: codex、kind: mcp、windowDays、elapsedMs、scan、totals、完整 tools。scan 为 McpScanResult 去除 events 后的质量计数，范围是整次扫描而非窗口过滤后的调用数；不输出原始事件、参数、结果正文或本地文件路径。JSON 无横幅。既有 Skill JSON 字段及语义不变。
+3. MCP 表格位于 src/render/mcp-table.ts，展示 server（未知为 -）、完整工具名、调用数、明确成功/失败/未知、可靠耗时样本均值。无耗时样本显示 -，观测到零耗时显示 0.00；均值分母为 durationSamples，不是全部调用。limit 只截断行，不改变汇总或 JSON。来自日志的文本折叠控制符和换行，避免终端结构被破坏。
+4. 表格展示候选/读取文件数，以及全部其他扫描计数；明确 unknown 不是成功或失败，扫描计数不等于覆盖率。缺失目录可返回空数据，目录错误等质量问题通过计数暴露，不隐藏为完整成功扫描。
+5. main 的 test 入口包含核心、契约、Markdown、MCP 与 MCP 表格测试；test:cli 同时运行原回归与独立 MCP CLI 测试。新测试使用合成日志验证独立来源路由、跨文件重放、结果分类、窗口、空数据、数据不泄漏、表格 limit、JSON 全量、冲突参数及原有输出共存。

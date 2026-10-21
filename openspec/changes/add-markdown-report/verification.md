@@ -35,3 +35,7 @@ Markdown 测试验证混合证据的明确/推断口径、完整上下文、小�
 - 已接入 --markdown，与 --json 互斥且预检在扫描前拒绝冲突；输出以报告标题开始，不含横幅，--limit 不截断报告。默认表格与原 JSON 字段不变。
 - main 的 pnpm run test 为 66/66，通过编译期类型负例；pnpm run typecheck 通过；pnpm run test:cli 构建通过、29/29，通过新增完整报告、strict、空数据和冲突回归；OpenSpec 严格校验和差异检查通过。
 - 已更新统一测试入口、README、报告文档及维护卡。仅使用合成数据，未扫描真实日志；功能 worktree 保留，不推送、不归档。
+
+## 联合集成复验 — 2026-10-21
+- 与 MCP 模块合并后，统一模块测试 112/112、CLI 集成测试 38/38、类型检查及四个 change 严格校验均通过。Skill Markdown 的完整输出、strict、窗口、空数据、参数互斥以及与 MCP 日志共存的行为继续通过。
+- --markdown 保持 Skill 专用；与 --mcp 组合在扫描前拒绝。没有更改 Markdown 渲染器或公共 Skill 报告类型。

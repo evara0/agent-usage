@@ -2,7 +2,7 @@
 
 ## 当前范围
 
-公共契约是源码级接口，未增加 npm 库导出。版本常量及类型位于 `src/contracts.ts`，报告组装位于 `src/report.ts`。Skill 聚合算法保持原样；Markdown 渲染已通过 --markdown 接入，见 [使用说明](markdown-report.md)。MCP 模块仍待总控集成。
+公共契约是源码级接口，未增加 npm 库导出。版本常量及类型位于 `src/contracts.ts`，报告组装位于 `src/report.ts`。Skill 聚合算法保持原样；Markdown 渲染已通过 --markdown 接入，见 [使用说明](markdown-report.md)。MCP 采集与聚合已通过 --mcp 接入，见 [使用说明](mcp-statistics.md)。
 
 ## Skill 报告
 
@@ -36,13 +36,13 @@ timeZone 只解释原有本地日期口径，不重分桶。strict 和时间窗�
 
 不从结果文本是否为空推断成功；不把取消、阻断或超时自动判成成功或失败。它们需要后续采集设计明确证据与状态，目前证据不足时保留 unknown。只有观测到零耗时才写 0，缺少耗时用 null。没有可确认调用身份的孤立结果不能凭空生成成功调用。
 
-`McpAggregateResult` 含 tools 与 totals。按 server/tool 分组，每组与总计均满足 `invocations = succeeded + failed + unknown`。每组 lastUsedAt 为最新调用开始时间；durationSamples 只统计可靠耗时样本，totalDurationMs 为其和。没有样本时两者均为 0，不代表所有调用耗时为零。当前不定义成功率或实现聚合算法。
+`McpAggregateResult` 含 tools 与 totals。按 server/tool 分组，每组与总计均满足 `invocations = succeeded + failed + unknown`。每组 lastUsedAt 为最新调用开始时间；durationSamples 只统计可靠耗时样本，totalDurationMs 为其和。没有样本时两者均为 0，不代表所有调用耗时为零。契约不定义成功率，聚合算法由独立 MCP 模块实现。
 
-这些是 TypeScript 内部类型和语义约定，未实现运行时验证；采集器必须验证时间、非负有限耗时、身份与结果证据，聚合器必须保证计数和样本不变量。不得套用 Skill 的按秒或每会话去重规则。
+这些是 TypeScript 内部类型和语义约定，类型本身不提供运行时验证；独立 MCP 采集器负责时间、身份和结果证据校验，聚合器负责非法输入、计数和耗时样本不变量。不得套用 Skill 的按秒或每会话去重规则。
 
 ## 并行开发交接
 
-后续两个功能从本轮最终 main 提交创建各自 worktree 和功能分支；本轮不创建它们。
+两个功能 worktree 从共同基线 938cb0c 启动，独立提交后已由总控按 Markdown、MCP 的顺序验收并合并到 main。功能 worktree 保留；下表为模块与总控的职责边界。
 
 | 工作 | 输入 / 输出 | 修改边界 |
 | --- | --- | --- |

@@ -22,3 +22,6 @@
 ## Impact
 
 新增 src/adapters/mcp.ts、src/mcp-aggregate.ts、tests/mcp.test.ts 和 docs/mcp-statistics.md。不增加依赖，不接入 CLI、表格或持久服务，不修改公共契约和其他功能模块，不启用遥测或改变 Codex 配置。
+
+## 总控集成阶段
+以上范围适用于功能分支模块交付。总控独立验收 2272801 后，在 main 接入 --mcp 选择 MCP 数据，默认继续统计 Skill。MCP 支持终端表格及 --json，复用 --days、--limit、--codex-dir；--mcp 与 --strict/--markdown 互斥，在扫描前拒绝。新增独立 MCP 表格及 CLI 合成测试、统一测试入口和使用文档，不修改 Skill JSON 或公共类型，不启用遥测或访问外部 MCP 服务。
