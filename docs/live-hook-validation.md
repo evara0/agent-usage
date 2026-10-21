@@ -37,9 +37,9 @@
 
 ## 复现与证据位置
 
-以下文件均在此 worktree 的忽略目录 `.local/live-hook-validation/`，不进入 Git：
+功能 worktree 回收前，以下 9 个证据/脚本文件已逐一核对 SHA-256，并保留至主项目忽略目录 `.local/worktree-recovery/2026-10-21/hooks/`，不进入 Git：
 
-- test-hook.mjs、home/hooks.json：用户已审查的测试定义。
+- test-hook.mjs：用户已审查的测试脚本；原隔离 Hook 配置与登录环境随 worktree 回收，不复制认证凭据。
 - investigate-trigger.mjs：分阶段采集与及时中断脚本（重跑会再次提交一次模型请求，应重新确认用途）。
 - execution-marker.json：实际脚本执行标记。
 - native-signals.json：实际收到的两条生命周期通知，未手写结果。
@@ -48,10 +48,10 @@
 - home/usage-hooks/live-session-start.jsonl：显式声明 unix-s 的离线导入。
 - report-30d.json：Node 直接写出的 UTF-8 统计结果。
 
-在当前 Hooks 工作树复查已有导入数据（不触发 Hook、不调用模型）：
+在主项目 G:/agent-usage 复查已保留的导入数据（不触发 Hook、不调用模型）：
 
 ```powershell
-node dist/index.mjs --hooks --days 30 --codex-dir .local/live-hook-validation/home --json --output .local/live-hook-validation/report-30d.json
+node dist/index.mjs --hooks --days 30 --codex-dir .local/worktree-recovery/2026-10-21/hooks/home --json --output .local/replayed-hooks.json
 ```
 
 导入头为 agent_usage_hook_import / schemaVersion=1 / timestampUnit=unix-s，其后原样保存原生通知。用 Node assert 核对 totals、开始/完成通知、扫描质量、窗口与耗时，全部通过。原 CLI 统计实现与公共契约没有修改。

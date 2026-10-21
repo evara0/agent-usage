@@ -22,7 +22,7 @@ Node.js v22.22.2，OpenSpec 1.13.0，Windows。`pnpm install --offline --frozen-
 
 ## Evidence Boundaries
 
-- 实际打开的官方页面、版本生成 schema、少量本地只读结构调查及缺口见 design 和 [数据说明](../../../docs/hooks-statistics.md)。生成类型不是实际执行通知样本。
+- 实际打开的官方页面、版本生成 schema、少量本地只读结构调查及缺口见 design 和 [数据说明](../../../../docs/hooks-statistics.md)。生成类型不是实际执行通知样本。
 - 新增测试使用临时合成数据；覆盖配置与执行分离、身份关联、重放、乱序、缺失、状态/时间/身份/耗时冲突、阻断/停止、窗口边界、时间单位声明、零/缺失耗时、损坏行、质量、最小投影、表格限制、JSON 完整、模式冲突和直接中文 UTF-8 输出。
 - 不声称已验证真实通知兼容、原生日志完整性、异步 Hook 或其他 Node/OS 组合；未部署持续采集。默认空结果不代表无 Hook 运行。
 - Skill/MCP 公共 contracts、report、采集/聚合/渲染及 output 模块未修改；来源语义仍为 codex。

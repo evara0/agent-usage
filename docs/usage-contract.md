@@ -66,4 +66,4 @@ Skill 来源只增强 Skills；--provenance 及专用输入不能与 --mcp/--hoo
 
 ## 验证
 
-在项目目录运行 `pnpm run test`、`pnpm run typecheck`、`pnpm run test:cli`。第一条同时编译类型负例并执行模块测试；CLI 测试使用临时合成日志。正式规范和活动变更使用 `openspec validate --all --strict --no-interactive`，归档任务使用 `openspec validate --archived --strict --no-interactive`。本轮验收记录位于活动变更 integrate-provenance-and-hooks/verification.md，早期记录在 openspec/changes/archive 下；归档只按用户明确授权执行。
+在项目目录运行 `pnpm run test`、`pnpm run typecheck`、`pnpm run test:cli`。第一条同时编译类型负例并执行模块测试；CLI 测试使用临时合成日志。正式规范和活动变更使用 `openspec validate --all --strict --no-interactive`，归档任务使用 `openspec validate --archived --strict --no-interactive`。本轮验收记录见[集成验收](../openspec/changes/archive/2026-10-21-integrate-provenance-and-hooks/verification.md)，活动变更已按用户授权归档；早期记录也在 openspec/changes/archive 下。
