@@ -27,6 +27,8 @@ TypeScript / Node ESM CLI；入口 src/index.ts，Skill 采集与静态解析在
 
 使用 `node ./dist/index.mjs --mcp --days 30` 查看 MCP 表格，添加 --json 输出完整 MCP 报告。--mcp 与 --strict/--markdown 互斥；默认仍为 Skill 统计。MCP 不访问外部服务或启用遥测。
 
+使用 `node ./dist/index.mjs --provenance --json` 追加当前来源资料；默认仅读所选 Codex home/skills，可用 --skill-root 替换，并用 --plugin-root 指定一个插件版本。--provenance-map 接受运行时校验的用户声明；建议放在被忽略的 .local/。三种输入均要求 --provenance，该模式不能与 --mcp 合用。来源模块 src/provenance.ts、类型 src/provenance-types.ts、渲染 src/render/provenance.ts；全部离线只读，不写全局 Skill 或安装数据库。字段与限制见 [来源说明](docs/skill-provenance.md)。
+
 ## 改什么，怎么生效
 
 改 src/ 后执行测试、类型检查与 test:cli（包含构建）；依赖变更用pnpm更新唯一锁文件。改README/OpenSpec无需构建。日志内容不进入Git或包；handoff仅本地保留，不自动同步。包的files仅包含dist。
@@ -42,3 +44,5 @@ TypeScript / Node ESM CLI；入口 src/index.ts，Skill 采集与静态解析在
 JSON应可整体解析；空统计先检查 --codex-dir、--days 和 --strict。检查stderr错误信息与退出码。损坏JSONL行会跳过，filesScanned不代表成功读取数。JSON 的 schemaVersion 为 1，读取器应允许附加字段。保留handoff和原始Codex数据；首次提交 060098b 是原 Skill CLI 回滚基线，使用 git log 查看后续契约提交。不得使用清理命令删除原始日志。统计限制与来源见README。
 
 MCP 空结果或 Unknown 较多时，先检查报告 scan 中的目录、读取、损坏行及身份计数，再核对 [MCP 覆盖范围](docs/mcp-statistics.md)。scan 是整次扫描的计数；MCP filesScanned 不含 history 路径，与 Skill 模式口径不同。无耗时样本不等于零耗时。
+
+来源 unknown/ambiguous/conflict 时先看 provenance.diagnostics、完整身份、原始别名和声明范围；不要改旧日志消除歧义。只支持有限 YAML、单插件版本根与精确映射；没有历史快照或可信官方认证。映射错误会在读取日志前退出；保留映射与原始数据再修改，切回不带 --provenance 的命令即可恢复原输出，无数据迁移。新增来源模块与 CLI 测试均已接入正式 test/test:cli，使用合成元数据和日志。

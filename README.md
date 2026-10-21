@@ -12,6 +12,7 @@
 - 输出终端表格、完整 JSON 或 Markdown 报告；JSON 同时包含按日期、项目目录划分的计数。
 - 支持指定 Codex 数据目录，读取当前及已归档的会话日志。
 - 使用 `--mcp` 查看按服务端和工具划分的调用统计，区分成功、失败、未知，并展示扫描质量计数。
+- 使用 `--provenance` 查看当前 Skill 来源候选，分开发行方、原作者、获取途径、许可和本地改写声明；缺证据保留 unknown。
 
 > 统计反映日志中的使用证据，不代表 Skill 成功执行次数或任务完成质量。
 
@@ -90,6 +91,10 @@ node ./dist/index.mjs --version
 | `--mcp` | 选择 MCP 统计，支持表格和 JSON；与 `--strict`、`--markdown` 互斥 | 关闭，默认统计 Skill |
 | `--output PATH` | 与 `--markdown` 或 `--json` 配合，直接写无 BOM UTF-8 文件，创建父目录并覆盖同名文件 | 不写文件，输出到终端 |
 | `--codex-dir PATH` | Codex 数据根目录 | `~/.codex` |
+| `--provenance` | Skill 专用，追加离线当前来源候选；不代表历史作者归属，不能与 `--mcp` 合用 | 关闭 |
+| `--skill-root PATH` | 来源模式的 standalone Skill 根 | 所选 Codex home 的 skills |
+| `--plugin-root PATH` | 来源模式的一个完整插件版本目录 | 不读插件缓存 |
+| `--provenance-map PATH` | 来源模式的 version=1 JSON 用户声明，读取日志前整体校验 | 不使用映射 |
 | `--help` / `-h` | 查看帮助 | — |
 | `--version` / `-v` | 查看版本 | — |
 
@@ -174,6 +179,18 @@ node ./dist/index.mjs --days 30 --json --output .local/skill-usage.json
 
 导出的 JSON 包含项目目录等本机信息，分享前请检查内容。
 
+## 查看 Skill 当前来源
+
+```powershell
+node ./dist/index.mjs --provenance --days 30
+node ./dist/index.mjs --provenance --json --output .local/skill-provenance.json
+node ./dist/index.mjs --provenance --provenance-map .local/skill-provenance-map.json --markdown --output .local/skill-provenance.md
+```
+
+来源资料只包含当前候选；不会将今天的作者写成历史调用作者，不按作者重新分配使用次数。自动元数据标 E3 文件声明，映射标 U 用户声明；多个候选或不同声明明确显示 ambiguous/conflict。目录名、`.system`、OpenAI 自声明和公开仓库地址不能认证官方、原创或开源许可。默认离线、只读、有界，不读取秘密配置或修改安装；插件需显式指定一个版本根。
+
+启用后 JSON 仅增补顶层 provenance，旧 source=codex、skills 和计数不变；默认 JSON 完全不增加字段。字段、严格映射格式、支持范围及隐私限制见 [Skill 当前来源资料](docs/skill-provenance.md)。
+
 ## 使用 MCP 统计
 
 ```powershell
@@ -256,7 +273,7 @@ pnpm run typecheck
 pnpm run test:cli
 ```
 
-`test` 编译并执行核心、契约、Markdown、MCP 及 MCP 表格测试，同时检查类型负例；`test:cli` 包含构建及 Skill/MCP CLI 集成测试。测试使用临时合成日志。
+`test` 编译并执行核心、契约、Markdown、MCP、MCP 表格与来源测试，同时检查类型负例；`test:cli` 包含构建及 Skill/MCP/来源 CLI 集成测试。测试使用临时合成日志和元数据。
 
 维护操作见 [项目维护卡](MAINTENANCE.md)，内部数据契约见 [公共契约](docs/usage-contract.md)。当前正式规范保存在 [OpenSpec specs](openspec/specs/)，已完成变更与验收记录保存在 [归档](openspec/changes/archive/)。使用 `openspec validate --all --strict --no-interactive` 检查正式规范和活动变更，使用 `openspec validate --archived --strict --no-interactive` 检查已归档任务。
 

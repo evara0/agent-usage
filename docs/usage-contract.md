@@ -24,6 +24,12 @@
 
 timeZone 只解释原有本地日期口径，不重分桶。strict 和时间窗口由采集后的聚合过程兑现，组装函数不校验其真实性。Skill total 仍表示去重后的使用证据，不表示执行成功或任务质量。
 
+## 可选 Skill 来源资料
+
+--provenance 在 SkillUsageReport 顶层增补可选 provenance，内部独立 schemaVersion=1、observedAt、temporalScope=current_reference_only、inventory、associations、diagnostics。默认不增加字段，外层 schemaVersion 保持 1；source/sources 仍表示 Codex 数据来源。Skill 计数、去重、aliases 和项目字段不变，类型位于 src/provenance-types.ts。
+
+每个字段保留声明值、E3 file_declared/U user_declared 证据及 skill/package/user 范围；unknown、declared、conflict 不表示核验认证。关联为当前参考的 unknown/candidate/ambiguous，不含确定历史作者或作者调用次数。结构、严格映射、范围限制见 [Skill 当前来源资料](skill-provenance.md)。
+
 ## MCP 类型
 
 `McpCallRecord` 与 Skill 使用事件分开。`source/sessionId/callId` 是一次调用的联合身份；server 不可识别时为 null，tool 保留完整工具名，不猜测服务端。startedAt 为调用尝试的 ISO 时间。

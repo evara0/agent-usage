@@ -1,3 +1,5 @@
+import type { SkillProvenanceReport } from './provenance-types.js';
+
 /** 首个公共报告版本；不兼容的字段或口径变更必须提升版本。 */
 export const USAGE_SCHEMA_VERSION = 1 as const;
 
@@ -37,6 +39,8 @@ export interface ReportContext {
 export interface SkillUsageReport extends ReportContext, AggregateResult {
   schemaVersion: typeof USAGE_SCHEMA_VERSION;
   source: 'codex';
+  /** Opt-in current references, never historical authorship attribution. */
+  provenance?: SkillProvenanceReport;
 }
 
 interface McpCallIdentity {

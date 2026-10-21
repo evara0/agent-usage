@@ -1,4 +1,5 @@
 import type { SkillUsageReport } from '../contracts.js';
+import { renderProvenanceMarkdown } from './provenance.js';
 
 /** 将输入呈现为单行文本，避免 Markdown / HTML 标记改变报告结构。 */
 function escapeText(value: string): string {
@@ -58,6 +59,7 @@ export function renderMarkdown(report: SkillUsageReport): string {
     }
   }
 
+  if (report.provenance) lines.push('', renderProvenanceMarkdown(report.provenance));
   lines.push(
     '',
     '## 记录解读与统计限制',

@@ -12,6 +12,10 @@ import { aggregateMcpEvents } from './mcp-aggregate.js';
 import { renderMcpTable } from './render/mcp-table.js';
 import { USAGE_SCHEMA_VERSION } from './contracts.js';
 import { emitReport } from './output.js';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { collectSkillProvenance, loadProvenanceMapping } from './provenance.js';
+import { renderProvenanceTable } from './render/provenance.js';
 
 const command = define({
   name: 'agent-usage',
@@ -25,6 +29,10 @@ const command = define({
     limit: { type: 'number', short: 'l', default: 25, description: 'Maximum table rows (0 = all)' },
     strict: { type: 'boolean', description: 'Exclude inferred SKILL.md reads' },
     'codex-dir': { type: 'string', description: 'Codex home directory (default: ~/.codex)' },
+    provenance: { type: 'boolean', description: 'Show offline current Skill provenance declarations (not historical attribution)' },
+    'skill-root': { type: 'string', description: 'Standalone skills root for --provenance (default: selected Codex home/skills)' },
+    'plugin-root': { type: 'string', description: 'One plugin version directory for --provenance' },
+    'provenance-map': { type: 'string', description: 'Validated version 1 JSON user declarations for --provenance' },
   },
   run: async ctx => {
     if (ctx.positionals.length) throw new Error('Unexpected positional argument; use --help');
@@ -36,6 +44,16 @@ const command = define({
       throw new Error('--limit must be a non-negative safe integer');
     }
     const started = performance.now();
+    // Validate mapping before any usage log scan; never echo its content on errors.
+    let mapping;
+    if (ctx.values['provenance-map']) {
+      try { mapping = await loadProvenanceMapping(ctx.values['provenance-map']); }
+      catch (error) {
+        console.error(error instanceof Error ? error.message : 'Invalid provenance mapping');
+        process.exitCode = 1;
+        return;
+      }
+    }
     if (ctx.values.mcp) {
       const { events, ...scan } = await collectMcpEvents(ctx.values['codex-dir']);
       const result = aggregateMcpEvents(events, { days });
@@ -53,6 +71,10 @@ const command = define({
     }
     const scan = await collectCodexEvents(ctx.values['codex-dir']);
     const result = aggregate(scan.events, { days, strict });
+    const provenance = ctx.values.provenance ? await collectSkillProvenance(result.skills, {
+      skillRoot: ctx.values['skill-root'] ?? join(ctx.values['codex-dir'] ?? join(homedir(), '.codex'), 'skills'),
+      pluginRoot: ctx.values['plugin-root'], mapping, observedAt: new Date().toISOString(),
+    }) : undefined;
     const elapsedMs = performance.now() - started;
     if (ctx.values.json || ctx.values.markdown) {
       const report = createSkillUsageReport(result, {
@@ -60,9 +82,11 @@ const command = define({
         filesScanned: scan.filesScanned, elapsedMs,
         strict: Boolean(strict), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
+      if (provenance) report.provenance = provenance;
       await emitReport(ctx.values.markdown ? renderMarkdown(report) : JSON.stringify(report, null, 2), ctx.values.output);
     } else {
-      console.log(renderTable(result, { limit, days, filesScanned: scan.filesScanned, elapsedMs }));
+      console.log(renderTable(result, { limit, days, filesScanned: scan.filesScanned, elapsedMs }) +
+        (provenance ? `\n${renderProvenanceTable(provenance, limit)}` : ''));
     }
   },
 });
@@ -85,6 +109,12 @@ try {
   }
   if (typeof values.output === 'string' && !values.output.trim()) throw new Error('--output must not be empty');
   if (values.json && values.markdown) throw new Error('--json and --markdown are mutually exclusive');
+  for (const option of ['skill-root', 'plugin-root', 'provenance-map']) {
+    if (values[option] !== undefined && (!values.provenance || !String(values[option]).trim())) {
+      throw new Error(`--${option} requires --provenance and a nonempty value`);
+    }
+  }
+  if (values.mcp && values.provenance) throw new Error('--provenance applies to Skills only; cannot combine with --mcp');
   if (values.mcp && (values.strict || values.markdown)) {
     throw new Error('--strict and --markdown apply to Skills only; cannot combine with --mcp');
   }
