@@ -2,14 +2,14 @@
 title: "agent-usage · 项目维护卡"
 project: "agent-usage"
 updated: "2026-10-21"
-status: "本地源码与合成测试核验；无远端部署"
+status: "本地源码、自动化回归及单次同步 Hook 链路核验；无远端部署"
 environments:
   - "Windows 本地 Node.js"
 ---
 
 # agent-usage · 项目维护卡
 
-修改源码后构建，再重新运行命令。项目统计本地 Codex Skill 与 MCP 记录。
+修改源码后构建，再重新运行命令。项目统计本地 Codex Skill、MCP 及离线导入的 Hook 通知。
 
 ## 项目是什么
 
@@ -27,7 +27,9 @@ TypeScript / Node ESM CLI；入口 src/index.ts，Skill 采集与静态解析在
 
 使用 `node ./dist/index.mjs --mcp --days 30` 查看 MCP 表格，添加 --json 输出完整 MCP 报告。--mcp 与 --strict/--markdown 互斥；默认仍为 Skill 统计。MCP 不访问外部服务或启用遥测。
 
-使用 `node ./dist/index.mjs --provenance --json` 追加当前来源资料；默认仅读所选 Codex home/skills，可用 --skill-root 替换，并用 --plugin-root 指定一个插件版本。--provenance-map 接受运行时校验的用户声明；建议放在被忽略的 .local/。三种输入均要求 --provenance，该模式不能与 --mcp 合用。来源模块 src/provenance.ts、类型 src/provenance-types.ts、渲染 src/render/provenance.ts；全部离线只读，不写全局 Skill 或安装数据库。字段与限制见 [来源说明](docs/skill-provenance.md)。
+使用 `node ./dist/index.mjs --provenance --json` 追加当前来源资料；默认仅读所选 Codex home/skills，可用 --skill-root 替换，并用 --plugin-root 指定一个插件版本。--provenance-map 接受运行时校验的用户声明；建议放在被忽略的 .local/。三种输入均要求 --provenance，该模式与 --mcp/--hooks 互斥。来源模块 src/provenance.ts、类型 src/provenance-types.ts、渲染 src/render/provenance.ts；全部离线只读，不写全局 Skill 或安装数据库。字段与限制见 [来源说明](docs/skill-provenance.md)。
+
+使用 `node ./dist/index.mjs --hooks --days 30` 查看离线 Hook 通知统计；`--hooks --json --output .local/hooks.json` 直接保存 UTF-8。只扫描所选 Codex 目录的 `usage-hooks/**/*.jsonl`；这是本工具离线导入约定，不是原生 Codex 日志。没有导入时为空结果，配置存在不证明执行。`--hooks` 与 --mcp/--strict/--markdown/--provenance 互斥。程序不会安装采集器、连接 App Server、运行 Hook 或修改配置。输入协议见 [Hooks 说明](docs/hooks-statistics.md)。
 
 ## 改什么，怎么生效
 
@@ -46,3 +48,5 @@ JSON应可整体解析；空统计先检查 --codex-dir、--days 和 --strict。
 MCP 空结果或 Unknown 较多时，先检查报告 scan 中的目录、读取、损坏行及身份计数，再核对 [MCP 覆盖范围](docs/mcp-statistics.md)。scan 是整次扫描的计数；MCP filesScanned 不含 history 路径，与 Skill 模式口径不同。无耗时样本不等于零耗时。
 
 来源 unknown/ambiguous/conflict 时先看 provenance.diagnostics、完整身份、原始别名和声明范围；不要改旧日志消除歧义。只支持有限 YAML、单插件版本根与精确映射；没有历史快照或可信官方认证。映射错误会在读取日志前退出；保留映射与原始数据再修改，切回不带 --provenance 的命令即可恢复原输出，无数据迁移。新增来源模块与 CLI 测试均已接入正式 test/test:cli，使用合成元数据和日志。
+
+Hooks 模块为 src/adapters/hooks.ts、src/hooks-types.ts、src/hooks-aggregate.ts、src/render/hooks-table.ts。空结果先检查 coverage.availability、scan.unsupportedFiles 与首行单位声明；声明单位须由导出方核实，不可猜测。本机 0.163.0-alpha.10.2 已验证一次真实同步 SessionStart command 通知，时间戳为 Unix 秒；单独 thread/start 后 15 秒无信号，首次 turn/start 后触发。此为版本限定观测，未认证原生持久历史、异步覆盖或持续采集。不把配置或遥测直方图当调用。测试认证和原始通知保留在原工作树 .local，不提交；如需清理须另外授权，重跑实时测试可能调用模型。详见[链路验证](docs/live-hook-validation.md)。

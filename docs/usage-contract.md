@@ -46,9 +46,15 @@ timeZone 只解释原有本地日期口径，不重分桶。strict 和时间窗�
 
 这些是 TypeScript 内部类型和语义约定，类型本身不提供运行时验证；独立 MCP 采集器负责时间、身份和结果证据校验，聚合器负责非法输入、计数和耗时样本不变量。不得套用 Skill 的按秒或每会话去重规则。
 
+## Hooks 类型与边界
+
+Hooks 使用独立 HookRecord / HookStats 和 kind=hooks JSON，不复用 Skill 事件与按秒去重规则。联合 thread/run 身份哈希后关联；同步 command/mcpTool 的明确 completed/failed 形成成功/失败，其余保持 unknown。缺失耗时不补零，路径与原始 ID 不输出。输入限定所选 Codex home 下 usage-hooks 的显式单位离线通知；完整字段与质量计数见 [Hooks 统计说明](hooks-statistics.md)。
+
+Skill 来源只增强 Skills；--provenance 及专用输入不能与 --mcp/--hooks 混用，所有模式参数在映射或日志读取前预检。完整测试入口同时包含来源、Hooks 和跨模式回归。
+
 ## 并行开发交接
 
-两个功能 worktree 从共同基线 938cb0c 启动，独立提交后已由总控按 Markdown、MCP 的顺序验收并合并到 main。功能 worktree 保留；下表为模块与总控的职责边界。
+早期 Markdown/MCP 从共同基线 938cb0c 启动并按该顺序集成。本轮 Skills 来源与 Hooks 从共同基线 7b1891e 启动，由总控按来源、Hooks 顺序集成。功能 worktree 的回收另按明确授权执行；下表说明早期模块与总控的职责边界。
 
 | 工作 | 输入 / 输出 | 修改边界 |
 | --- | --- | --- |
@@ -60,4 +66,4 @@ timeZone 只解释原有本地日期口径，不重分桶。strict 和时间窗�
 
 ## 验证
 
-在项目目录运行 `pnpm run test`、`pnpm run typecheck`、`pnpm run test:cli`。第一条同时编译类型负例并执行模块测试；CLI 测试使用临时合成日志。正式规范和活动变更使用 `openspec validate --all --strict --no-interactive`，归档任务使用 `openspec validate --archived --strict --no-interactive`。当前验收记录位于 openspec/changes/archive 下各 change 的 verification.md；归档只按用户明确授权执行。
+在项目目录运行 `pnpm run test`、`pnpm run typecheck`、`pnpm run test:cli`。第一条同时编译类型负例并执行模块测试；CLI 测试使用临时合成日志。正式规范和活动变更使用 `openspec validate --all --strict --no-interactive`，归档任务使用 `openspec validate --archived --strict --no-interactive`。本轮验收记录位于活动变更 integrate-provenance-and-hooks/verification.md，早期记录在 openspec/changes/archive 下；归档只按用户明确授权执行。

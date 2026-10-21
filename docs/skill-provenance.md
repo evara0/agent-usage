@@ -18,7 +18,7 @@ node ./dist/index.mjs --provenance --skill-root "D:/example/skills" --plugin-roo
 node ./dist/index.mjs --provenance --provenance-map .local/skill-provenance-map.json --json --output .local/skill-provenance.json
 ```
 
-`--skill-root`、`--plugin-root`、`--provenance-map` 必须与 `--provenance` 合用；不能与 `--mcp` 合用。根路径不自动展开环境变量/波浪号，按 shell 传入的路径解释。插件根是一个包版本目录，不是整个插件缓存根。未启用时不读来源元数据，旧 JSON 不增加字段。
+`--skill-root`、`--plugin-root`、`--provenance-map` 必须与 `--provenance` 合用；不能与 `--mcp` 或 `--hooks` 合用，非法组合会在读取映射或日志之前拒绝。根路径不自动展开环境变量/波浪号，按 shell 传入的路径解释。插件根是一个包版本目录，不是整个插件缓存根。未启用时不读来源元数据，旧 JSON 不增加字段。
 
 ## 分开的信息与证据
 

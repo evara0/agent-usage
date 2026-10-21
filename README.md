@@ -1,6 +1,6 @@
 # agent-usage
 
-在终端查看本地 **Codex Skill 与 MCP 使用记录**：了解 Skill 的使用频次与证据类型，或查看 MCP 工具调用、明确结果和可用耗时样本。
+在终端查看本地 **Codex Skill、MCP 与离线 Hook 使用证据**：了解 Skill 频次、MCP 调用，或导入已保存的 Hook 通知查看明确结果和耗时样本。
 
 统计在本机完成，只读扫描 Codex 日志，不执行日志中的代码。无需 API Key、数据库或常驻服务。
 
@@ -13,6 +13,7 @@
 - 支持指定 Codex 数据目录，读取当前及已归档的会话日志。
 - 使用 `--mcp` 查看按服务端和工具划分的调用统计，区分成功、失败、未知，并展示扫描质量计数。
 - 使用 `--provenance` 查看当前 Skill 来源候选，分开发行方、原作者、获取途径、许可和本地改写声明；缺证据保留 unknown。
+- 使用 `--hooks` 导入离线同步 Hook 通知，查看分组调用数、明确结果、未知及耗时样本；无导入时显示空结果和覆盖缺口。
 
 > 统计反映日志中的使用证据，不代表 Skill 成功执行次数或任务完成质量。
 
@@ -74,6 +75,12 @@ node ./dist/index.mjs --mcp --days 30
 # 输出完整 MCP JSON
 node ./dist/index.mjs --mcp --days 30 --json
 
+# 查看离线导入的 Hook 通知；没有导入时返回空结果及覆盖说明
+node ./dist/index.mjs --hooks --days 30
+
+# 保存完整 Hook JSON 为 UTF-8
+node ./dist/index.mjs --hooks --json --output .local/hooks.json
+
 # 查看帮助和版本
 node ./dist/index.mjs --help
 node ./dist/index.mjs --version
@@ -89,16 +96,17 @@ node ./dist/index.mjs --version
 | `--json` | 标准输出为完整 JSON，无表格或横幅 | 关闭 |
 | `--markdown` | 标准输出为完整 Skill Markdown 报告，与 `--json` 互斥 | 关闭 |
 | `--mcp` | 选择 MCP 统计，支持表格和 JSON；与 `--strict`、`--markdown` 互斥 | 关闭，默认统计 Skill |
+| `--hooks` | 选择离线 Hook 通知统计，支持表格和 JSON；与 `--mcp`、`--strict`、`--markdown` 互斥 | 关闭 |
 | `--output PATH` | 与 `--markdown` 或 `--json` 配合，直接写无 BOM UTF-8 文件，创建父目录并覆盖同名文件 | 不写文件，输出到终端 |
 | `--codex-dir PATH` | Codex 数据根目录 | `~/.codex` |
-| `--provenance` | Skill 专用，追加离线当前来源候选；不代表历史作者归属，不能与 `--mcp` 合用 | 关闭 |
+| `--provenance` | Skill 专用，追加离线当前来源候选；不代表历史作者归属，与 `--mcp`、`--hooks` 互斥 | 关闭 |
 | `--skill-root PATH` | 来源模式的 standalone Skill 根 | 所选 Codex home 的 skills |
 | `--plugin-root PATH` | 来源模式的一个完整插件版本目录 | 不读插件缓存 |
 | `--provenance-map PATH` | 来源模式的 version=1 JSON 用户声明，读取日志前整体校验 | 不使用映射 |
 | `--help` / `-h` | 查看帮助 | — |
 | `--version` / `-v` | 查看版本 | — |
 
-`--limit` 只影响表格展示，不改变汇总值、JSON 的完整 Skill/工具列表或 Markdown 报告。未知参数、位置参数、互斥输出选项和非法数值会报错并以非零状态退出；参数错误在扫描日志前被拒绝。
+`--limit` 只影响表格展示，不改变汇总值、JSON 的完整 Skill/工具/Hook 列表或 Markdown 报告。未知参数、位置参数、互斥输出选项和非法数值会报错并以非零状态退出；参数错误在扫描日志前被拒绝。
 
 ## 怎样理解 Skill 结果
 
@@ -217,6 +225,19 @@ MCP 表格按服务端和完整工具名分组，展示以下信息：
 
 当前支持的日志结构和边界经过合成样本验证，尚未对真实 Codex 版本作全面兼容认证。没有明确结果标志的普通文本保留 Unknown；代码封装内没有独立调用记录的 MCP 调用可能无法计入。具体输入结构、扫描字段和覆盖限制见 [MCP 统计说明](docs/mcp-statistics.md)。
 
+## 使用 Hooks 离线统计
+
+```powershell
+node ./dist/index.mjs --hooks --days 30
+node ./dist/index.mjs --hooks --json --output .local/hooks.json
+```
+
+此模式读取所选 Codex 目录下的 `usage-hooks/**/*.jsonl`，这是本工具的**离线导入约定，不是 Codex 原生目录**。输入必须是已经合法保存的同步 `hook/started` / `hook/completed` 通知，每个文件首行声明协议及秒/毫秒单位。完整输入协议见 [Hooks 统计说明](docs/hooks-statistics.md)。程序不安装采集器、运行 Hook 或修改配置。
+
+表格按不暴露原路径的 Hook ID、事件、配置来源和 handler 分组，显示调用数、成功/失败/未知、耗时样本数和样本均值。没有耗时样本为 `-`，观测零值为 `0.00`；阻断/停止保留 unknown。`--hooks --json` 输出独立 `kind: "hooks"` 报告，包含完整分组、scan 与 coverage；顶层 source 仍为 codex，配置来源另用 configSource。
+
+没有导入时得到空结果与 `coverage.availability: "no-imports"`，**不证明没有 Hook 运行**。本机 `0.163.0-alpha.10.2` 已完成一次真实同步 SessionStart command Hook 的[执行、通知捕获与统计验证](docs/live-hook-validation.md)，但未部署持续采集，也未认证完整持久历史、其他版本或异步覆盖。Hook 配置存在、启用或相关会话均不计执行。
+
 ## 数据来源与统计边界
 
 Skill 统计读取所选 Codex 数据目录中的以下内容；MCP 仅读取两个会话目录：
@@ -273,7 +294,7 @@ pnpm run typecheck
 pnpm run test:cli
 ```
 
-`test` 编译并执行核心、契约、Markdown、MCP、MCP 表格与来源测试，同时检查类型负例；`test:cli` 包含构建及 Skill/MCP/来源 CLI 集成测试。测试使用临时合成日志和元数据。
+`test` 编译并执行核心、契约、Markdown、MCP、Hooks、来源及表格测试，同时检查类型负例；`test:cli` 包含构建、全部功能 CLI 测试和跨模式兼容回归。自动化测试使用临时合成日志和元数据；另有一次真实同步 Hook 的[链路验证记录](docs/live-hook-validation.md)。
 
 维护操作见 [项目维护卡](MAINTENANCE.md)，内部数据契约见 [公共契约](docs/usage-contract.md)。当前正式规范保存在 [OpenSpec specs](openspec/specs/)，已完成变更与验收记录保存在 [归档](openspec/changes/archive/)。使用 `openspec validate --all --strict --no-interactive` 检查正式规范和活动变更，使用 `openspec validate --archived --strict --no-interactive` 检查已归档任务。
 
