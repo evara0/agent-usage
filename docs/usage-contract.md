@@ -1,8 +1,8 @@
-# 公共契约与后续分工
+# 公共契约
 
 ## 当前范围
 
-公共契约是源码级接口，未增加 npm 库导出。版本常量及类型位于 `src/contracts.ts`，报告组装位于 `src/report.ts`。Skill 聚合算法保持原样；Markdown 渲染已通过 --markdown 接入，见 [使用说明](markdown-report.md)。MCP 采集与聚合已通过 --mcp 接入，见 [使用说明](mcp-statistics.md)。
+公共契约是源码级接口，未建立 npm 库导出。版本常量及 Skill/MCP 类型位于 `src/contracts.ts`，报告组装位于 `src/report.ts`；Hook 与来源类型分别见 `src/hooks-types.ts`、`src/provenance-types.ts`。
 
 ## Skill 报告
 
@@ -20,7 +20,17 @@
 | elapsedMs | 原有扫描与聚合耗时 |
 | totals / skills | 原有全部字段、类型和语义；不受表格 limit 影响 |
 
-本轮 JSON 只增加 schemaVersion、strict、timeZone 三个字段。允许附加字段的旧读取器可以继续使用原字段；拒绝未知键的外部校验器需要调整。现有 `SkillStats`、`AggregateResult` 仍可从 `src/aggregate.ts` 导入。
+`skills` 中每项字段如下；`totals` 包含 invocations、manual、auto 和 skills，分别为总记录数、手动数、自动数和 Skill 数。
+
+| SkillStats 字段 | 含义 |
+| --- | --- |
+| skill / aliases | 归一化名称 / 保留记录的原始名称别名 |
+| total / manual / auto | 记录总数 / 手动数 / 自动数；total = manual + auto |
+| inferredAuto | auto 中静态读取推断的子集；明确数 = total − inferredAuto |
+| lastUsedAt | 最新保留记录的 ISO 时间，无记录为 null |
+| daily / projects / sources | 按本地日期、项目目录、数据来源划分的计数 |
+
+读取器应允许增加字段；不兼容的字段或统计口径变更必须提升 schemaVersion。`SkillStats`、`AggregateResult` 也可从 `src/aggregate.ts` 导入。
 
 timeZone 只解释原有本地日期口径，不重分桶。strict 和时间窗口由采集后的聚合过程兑现，组装函数不校验其真实性。Skill total 仍表示去重后的使用证据，不表示执行成功或任务质量。
 
@@ -40,7 +50,7 @@ timeZone 只解释原有本地日期口径，不重分桶。strict 和时间窗�
 | succeeded | 关联到明确成功结果 | 结果 ISO 时间 | 可靠的非负有限耗时或 null |
 | failed | 关联到明确失败结果 | 结果 ISO 时间 | 可靠的非负有限耗时或 null |
 
-不从结果文本是否为空推断成功；不把取消、阻断或超时自动判成成功或失败。它们需要后续采集设计明确证据与状态，目前证据不足时保留 unknown。只有观测到零耗时才写 0，缺少耗时用 null。没有可确认调用身份的孤立结果不能凭空生成成功调用。
+不从结果文本是否为空推断成功；取消、阻断或超时等证据不足时保留 unknown。只有观测到零耗时才写 0，缺少耗时用 null。无可确认调用身份的孤立结果不生成调用。
 
 `McpAggregateResult` 含 tools 与 totals。按 server/tool 分组，每组与总计均满足 `invocations = succeeded + failed + unknown`。每组 lastUsedAt 为最新调用开始时间；durationSamples 只统计可靠耗时样本，totalDurationMs 为其和。没有样本时两者均为 0，不代表所有调用耗时为零。契约不定义成功率，聚合算法由独立 MCP 模块实现。
 
@@ -52,18 +62,6 @@ Hooks 使用独立 HookRecord / HookStats 和 kind=hooks JSON，不复用 Skill 
 
 Skill 来源只增强 Skills；--provenance 及专用输入不能与 --mcp/--hooks 混用，所有模式参数在映射或日志读取前预检。完整测试入口同时包含来源、Hooks 和跨模式回归。
 
-## 并行开发交接
+## 维护与验证
 
-早期 Markdown/MCP 从共同基线 938cb0c 启动并按该顺序集成。本轮 Skills 来源与 Hooks 从共同基线 7b1891e 启动，由总控按来源、Hooks 顺序集成。功能 worktree 的回收另按明确授权执行；下表说明早期模块与总控的职责边界。
-
-| 工作 | 输入 / 输出 | 修改边界 |
-| --- | --- | --- |
-| Markdown 报告 | 输入 SkillUsageReport，输出文本 | 新增独立渲染模块、专属测试及对应 OpenSpec change |
-| MCP 统计 | 输出 McpCallRecord 与 McpAggregateResult | 新增专属采集、聚合、测试及对应 OpenSpec change |
-| 总控集成 | CLI 接线与最终验收 | contracts.ts、report.ts、index.ts、package.json、锁文件与主文档 |
-
-公共接口不足时先反馈总控；各功能不得自行改写公共契约。新增测试需由总控接入项目脚本，不能只创建测试文件而不执行。同一 worktree 内不并行运行会覆盖相同生成目录的构建或测试。
-
-## 验证
-
-在项目目录运行 `pnpm run test`、`pnpm run typecheck`、`pnpm run test:cli`。第一条同时编译类型负例并执行模块测试；CLI 测试使用临时合成日志。正式规范和活动变更使用 `openspec validate --all --strict --no-interactive`，归档任务使用 `openspec validate --archived --strict --no-interactive`。本轮验收记录见[集成验收](../openspec/changes/archive/2026-10-21-integrate-provenance-and-hooks/verification.md)，活动变更已按用户授权归档；早期记录也在 openspec/changes/archive 下。
+修改契约时同步类型、采集/聚合、渲染及消费方测试。检查命令见[维护卡](../MAINTENANCE.md)；CLI 使用及专题文档见 [README](../README.md)。分支基线、集成过程和历史验证保存在[集成验收](../openspec/changes/archive/2026-10-21-integrate-provenance-and-hooks/verification.md)及其他变更归档中。
