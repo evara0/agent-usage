@@ -102,4 +102,4 @@ if ($LASTEXITCODE -ne 0) { throw 'MCP 测试编译失败' }
 node --test .local/mcp-test-dist/tests/mcp.test.js
 ```
 
-完整验证还包括现有 `pnpm run typecheck`、`pnpm run test`、`pnpm run test:cli`、`openspec validate add-mcp-statistics --strict --no-interactive` 和 `git diff --check`。生成目录与其他命令顺序运行，避免相互覆盖。所有数据验证仅使用临时合成日志。
+完整验证还包括现有 `pnpm run typecheck`、`pnpm run test`、`pnpm run test:cli`、`openspec validate --all --strict --no-interactive`、`openspec validate --archived --strict --no-interactive` 和 `git diff --check`。生成目录与其他命令顺序运行，避免相互覆盖。所有数据验证仅使用临时合成日志。

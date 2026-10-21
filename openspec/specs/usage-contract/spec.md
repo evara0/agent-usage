@@ -1,4 +1,9 @@
-## ADDED Requirements
+# usage-contract Specification
+
+## Purpose
+定义 Skill 报告及独立 MCP 记录、聚合结果的最小公共契约，保持旧字段和导入路径兼容，明确身份、未知结果与耗时样本口径，供渲染和采集模块共享。
+
+## Requirements
 
 ### Requirement: 公共报告契约
 系统 SHALL 提供供报告模块消费的 SkillUsageReport 与无采集副作用的组装函数，保留既有 Skill 聚合类型导入路径和原有统计语义。
@@ -23,7 +28,7 @@
 - **THEN** 记录区分 succeeded 与 failed，保留结果时间，缺少可靠耗时使用 null 而非 0
 
 ### Requirement: MCP 聚合边界
-系统 SHALL 声明按 server/tool 聚合的 MCP 结果类型，并区分 succeeded、failed、unknown 及耗时样本数；不实施 MCP 采集和聚合算法。
+公共契约层 SHALL 声明按 server/tool 聚合的 MCP 结果类型，并区分 succeeded、failed、unknown 及耗时样本数；采集和聚合算法由独立 MCP 统计模块实现，不放入公共类型定义。
 
 #### Scenario: 分母与耗时
 - **WHEN** 后续模块使用公共聚合类型
@@ -34,4 +39,4 @@
 
 #### Scenario: 并行开发准备完成
 - **WHEN** 契约完成验收
-- **THEN** main 包含契约和验证记录，但不创建两个功能分支或 worktree，不推送、发布或自动归档
+- **THEN** main 包含契约和验证记录，后续功能分支从明确的共同提交启动；推送、发布及归档遵循用户明确授权

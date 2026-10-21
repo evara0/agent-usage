@@ -54,4 +54,4 @@ timeZone 只解释原有本地日期口径，不重分桶。strict 和时间窗�
 
 ## 验证
 
-在项目目录运行 `pnpm run test`、`pnpm run typecheck`、`pnpm run test:cli`。第一条同时编译类型负例并执行核心与契约测试；CLI 测试使用临时合成日志。两个 change 分别运行 `openspec validate <change-id> --strict --no-interactive`。验收结果见对应 change 的 verification.md，OpenSpec 不自动归档。
+在项目目录运行 `pnpm run test`、`pnpm run typecheck`、`pnpm run test:cli`。第一条同时编译类型负例并执行模块测试；CLI 测试使用临时合成日志。正式规范和活动变更使用 `openspec validate --all --strict --no-interactive`，归档任务使用 `openspec validate --archived --strict --no-interactive`。当前验收记录位于 openspec/changes/archive 下各 change 的 verification.md；归档只按用户明确授权执行。

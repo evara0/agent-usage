@@ -258,7 +258,7 @@ pnpm run test:cli
 
 `test` 编译并执行核心、契约、Markdown、MCP 及 MCP 表格测试，同时检查类型负例；`test:cli` 包含构建及 Skill/MCP CLI 集成测试。测试使用临时合成日志。
 
-维护操作见 [项目维护卡](MAINTENANCE.md)，内部数据契约见 [公共契约](docs/usage-contract.md)。需求与验收记录保存在 [OpenSpec changes](openspec/changes/)；可用 `openspec validate <change-id> --strict --no-interactive` 校验对应变更。
+维护操作见 [项目维护卡](MAINTENANCE.md)，内部数据契约见 [公共契约](docs/usage-contract.md)。当前正式规范保存在 [OpenSpec specs](openspec/specs/)，已完成变更与验收记录保存在 [归档](openspec/changes/archive/)。使用 `openspec validate --all --strict --no-interactive` 检查正式规范和活动变更，使用 `openspec validate --archived --strict --no-interactive` 检查已归档任务。
 
 ## 来源与许可说明
 

@@ -31,4 +31,4 @@ The CLI SHALL offer --days/-d, --limit/-l, --strict, --json, --codex-dir, help a
 The project SHALL use Git and OpenSpec and ignore handoff, local logs, dependencies and build outputs.
 #### Scenario: Delivery
 - **WHEN** implementation completes
-- **THEN** source, usage and maintenance are documented and changes stay uncommitted, unpushed and unarchived
+- **THEN** source, usage and maintenance are documented and verified changes are preserved in local Git commits; pushing and OpenSpec archival occur only with explicit user authorization

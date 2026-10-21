@@ -31,7 +31,7 @@ TypeScript / Node ESM CLI；入口 src/index.ts，Skill 采集与静态解析在
 
 改 src/ 后执行测试、类型检查与 test:cli（包含构建）；依赖变更用pnpm更新唯一锁文件。改README/OpenSpec无需构建。日志内容不进入Git或包；handoff仅本地保留，不自动同步。包的files仅包含dist。
 
-公共契约与并行修改边界见 [docs/usage-contract.md](docs/usage-contract.md)。新增测试须接入 package.json 的检查入口；不要在同一 worktree 同时运行会覆盖相同生成目录的构建或测试。OpenSpec 按 change 分别严格校验，不自动归档。
+公共契约与并行修改边界见 [docs/usage-contract.md](docs/usage-contract.md)。新增测试须接入 package.json 的检查入口；不要在同一 worktree 同时运行会覆盖相同生成目录的构建或测试。当前正式规范在 openspec/specs，完成变更在 openspec/changes/archive；新需求先创建对应 change。使用 `openspec validate --all --strict --no-interactive` 和 `openspec validate --archived --strict --no-interactive` 校验，归档与推送仅按用户明确授权执行。
 
 ## 程序更新到本地
 
