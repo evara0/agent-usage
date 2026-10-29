@@ -65,3 +65,7 @@ Skill 来源只增强 Skills；--provenance 及专用输入不能与 --mcp/--hoo
 ## 维护与验证
 
 修改契约时同步类型、采集/聚合、渲染及消费方测试。检查命令见[维护卡](../MAINTENANCE.md)；CLI 使用及专题文档见 [README](../README.md)。分支基线、集成过程和历史验证保存在[集成验收](../openspec/changes/archive/2026-10-21-integrate-provenance-and-hooks/verification.md)及其他变更归档中。
+
+## 独立 Skill 对比契约
+
+显式 --skill-method 使用 kind=skill-usage-comparison、schemaVersion=1，与本文件的旧 SkillUsageReport v1 分开。完整格式见 schemas/skill-evidence-v1.schema.json 与 docs/skill-comparison.md；技能轮次、实例身份、逐条证据及未决项均可重算。旧 source、total 与去重不改变。

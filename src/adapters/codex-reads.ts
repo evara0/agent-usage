@@ -15,6 +15,11 @@ interface ToolCall {
 
 /** Static attempted-read evidence only. Session content is never evaluated. */
 export function codexSkillReads(call: ToolCall): string[] {
+  return [...new Set(codexSkillReadPaths(call).map(path => SKILL_PATH.exec(path)![1]!))];
+}
+
+/** Preserve exact static operands for explicitly configured identity resolution. */
+export function codexSkillReadPaths(call: ToolCall): string[] {
   const name = typeof call.name === 'string' ? call.name.split('.').at(-1) : undefined;
   const commands: unknown[] = [];
   if (call.type === 'function_call' && typeof call.arguments === 'string') {
@@ -37,7 +42,7 @@ export function codexSkillReads(call: ToolCall): string[] {
   for (const command of commands) {
     for (const path of readPaths(command)) {
       const name = SKILL_PATH.exec(path)?.[1];
-      if (name && name !== '.' && name !== '..' && name !== '.system') names.add(name);
+      if (name && name !== '.' && name !== '..' && name !== '.system') names.add(path);
     }
   }
   return [...names];

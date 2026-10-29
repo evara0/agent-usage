@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "kind": "skill-usage-comparison",
+  "mode": "hooks",
+  "countUnit": "skill-turn",
+  "sourceInstanceId": "demo-codex-home",
+  "timeZone": "Asia/Shanghai",
+  "period": {
+    "start": "2026-10-28T00:00:00+08:00",
+    "end": "2026-10-29T00:00:00+08:00"
+  },
+  "generatedAt": "2026-10-29T09:00:00+08:00",
+  "producer": {
+    "name": "synthetic-example",
+    "version": "1",
+    "mode": "automated"
+  },
+  "deduplication": {
+    "ruleVersion": "skill-turn-v1",
+    "keyFields": [
+      "sourceInstanceId",
+      "sessionId",
+      "turnId",
+      "skillKey"
+    ],
+    "unresolvedEvidence": []
+  },
+  "evidence": [
+    {
+      "method": "logs",
+      "sourceRecordId": "message-01",
+      "sessionId": "session-a",
+      "turnId": "turn-01",
+      "skillKey": "standalone:handoff",
+      "type": "skill_requested",
+      "occurredAt": "2026-10-28T09:00:00+08:00"
+    },
+    {
+      "method": "hooks",
+      "sourceRecordId": "call-01:before",
+      "sessionId": "session-a",
+      "turnId": "turn-01",
+      "skillKey": "standalone:handoff",
+      "type": "skill_read_attempt",
+      "occurredAt": "2026-10-28T09:01:00+08:00"
+    },
+    {
+      "method": "logs",
+      "sourceRecordId": "message-02",
+      "sessionId": "session-a",
+      "turnId": "turn-02",
+      "skillKey": "standalone:handoff",
+      "type": "skill_injected",
+      "occurredAt": "2026-10-28T10:00:00+08:00"
+    },
+    {
+      "method": "logs",
+      "sourceRecordId": "call-03:before",
+      "sessionId": "session-a",
+      "turnId": "turn-03",
+      "skillKey": "standalone:handoff",
+      "type": "skill_read_attempt",
+      "occurredAt": "2026-10-28T11:00:00+08:00"
+    },
+    {
+      "method": "hooks",
+      "sourceRecordId": "call-03:before",
+      "sessionId": "session-a",
+      "turnId": "turn-03",
+      "skillKey": "standalone:handoff",
+      "type": "skill_read_attempt",
+      "occurredAt": "2026-10-28T11:00:00+08:00"
+    },
+    {
+      "method": "logs",
+      "sourceRecordId": "call-04:before",
+      "sessionId": "session-a",
+      "turnId": "turn-04",
+      "skillKey": "standalone:handoff",
+      "type": "skill_read_attempt",
+      "occurredAt": "2026-10-28T14:00:00+08:00"
+    },
+    {
+      "method": "hooks",
+      "sourceRecordId": "call-04:before",
+      "sessionId": "session-a",
+      "turnId": "turn-04",
+      "skillKey": "standalone:handoff",
+      "type": "skill_read_attempt",
+      "occurredAt": "2026-10-28T14:00:00+08:00"
+    },
+    {
+      "method": "logs",
+      "sourceRecordId": "call-05:before",
+      "sessionId": "session-a",
+      "turnId": "turn-05",
+      "skillKey": "standalone:handoff",
+      "type": "skill_read_attempt",
+      "occurredAt": "2026-10-28T18:30:00+08:00"
+    },
+    {
+      "method": "hooks",
+      "sourceRecordId": "call-06:before",
+      "sessionId": "session-a",
+      "turnId": "turn-06",
+      "skillKey": "standalone:handoff",
+      "type": "skill_read_attempt",
+      "occurredAt": "2026-10-28T18:35:00+08:00"
+    }
+  ],
+  "skills": [
+    {
+      "skillKey": "standalone:handoff",
+      "skill": "handoff",
+      "logsExplicit": null,
+      "logsInferred": null,
+      "hooks": 4,
+      "uniqueTotal": 4,
+      "lastRecorded": "2026-10-28T18:35:00+08:00"
+    }
+  ],
+  "totals": {
+    "logsExplicit": null,
+    "logsInferred": null,
+    "hooks": 4,
+    "uniqueTotal": 4,
+    "skills": 1
+  }
+}

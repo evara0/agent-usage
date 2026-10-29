@@ -75,3 +75,9 @@ openspec validate --archived --strict --no-interactive
 保留原始 Codex 数据、个人映射及交接资料。代码可从 Git 历史恢复后重新构建，已有乱码报告可重新导出；不要通过改写或删除日志修正统计。
 
 真实 Hook 证据位于 `.local/worktree-recovery/2026-10-21/hooks/`，只在本机保留。离线重放及单次样本的覆盖范围见[验证记录](docs/live-hook-validation.md)；重新执行实时验证可能调用模型。
+
+## Skill 对比新增维护点
+
+--skill-method 为可选新模式，旧默认与 --hooks 处理器统计不变。Schema 随包发布在 schemas/；采集命令为 dist/skill-hook-entry.mjs。
+
+保留 usage-skills 中的 config.json、证据包及未决项；不要通过修改原始日志修正汇总。只读重放见 docs/skill-comparison.md。当前回归使用合成输入，真实宿主 Hook 仍待隔离登录和正常信任验证，不能报告全面覆盖。

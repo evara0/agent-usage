@@ -117,3 +117,15 @@ $report.skills | Select-Object skill, total, inferredAuto, lastUsedAt
 | [Hook 统计](docs/hooks-statistics.md) | 离线输入协议、覆盖范围和诊断 |
 | [Hook 验证记录](docs/live-hook-validation.md) | 单次真实同步链路的验证证据 |
 | [Skill 来源资料](docs/skill-provenance.md) | 元数据、用户映射及关联规则 |
+
+## Skill 双来源对比（可选）
+
+新增 --skill-method logs|hooks|combined，以技能轮次展示 Logs Explicit、Logs Inferred、Hooks、Unique Total 和完整日期时间。默认旧统计不变。
+
+重放合成样例：
+
+```powershell
+node dist/index.mjs --skill-method combined --skill-evidence docs/examples/skill-comparison-combined.json
+```
+
+实际采集须先显式配置实例和技能映射；--skill-evidence 可独立重放。新模式不自动安装 Hook。见 [使用与输入规范](docs/skill-comparison.md)、[整理指令](docs/skill-evidence-extraction.md)及[真实验证边界](docs/skill-hook-validation.md)。

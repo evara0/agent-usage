@@ -17,6 +17,9 @@ import { join } from 'node:path';
 import { collectSkillProvenance, loadProvenanceMapping } from './provenance.js';
 import { renderProvenanceTable } from './render/provenance.js';
 import { collectHookEvents } from './adapters/hooks.js';
+import { collectSkillComparison } from './skill-comparison-cli.js';
+import { renderSkillComparison } from './render/skill-comparison.js';
+import type { SkillMode } from './skill-evidence-types.js';
 import { aggregateHookEvents } from './hooks-aggregate.js';
 import { renderHooksTable } from './render/hooks-table.js';
 
@@ -24,6 +27,8 @@ const command = define({
   name: 'agent-usage',
   description: 'Local Codex Skill, MCP and offline Hook evidence statistics',
   args: {
+    'skill-method': { type: 'string', description: 'Skill evidence mode: logs, hooks or combined' },
+    'skill-evidence': { type: 'string', description: 'Replay a structured Skill evidence JSON package' },
     json: { type: 'boolean', description: 'Output complete machine-readable JSON' },
     markdown: { type: 'boolean', description: 'Output a complete Skill Markdown report' },
     mcp: { type: 'boolean', description: 'Show MCP statistics instead of Skills (table or JSON)' },
@@ -48,6 +53,18 @@ const command = define({
       throw new Error('--limit must be a non-negative safe integer');
     }
     const started = performance.now();
+    if (ctx.values['skill-method']) {
+      try {
+        const report = await collectSkillComparison({ method: ctx.values['skill-method'] as SkillMode,
+          evidencePath: ctx.values['skill-evidence'], codexDir: ctx.values['codex-dir'], days });
+        if (ctx.values.json) await emitReport(JSON.stringify(report, null, 2), ctx.values.output);
+        else console.log(renderSkillComparison(report, limit));
+      } catch (error) {
+        console.error(error instanceof Error && error.message.startsWith('Invalid skill evidence:') ? error.message : 'Unable to collect Skill comparison evidence');
+        process.exitCode = 1;
+      }
+      return;
+    }
     // Validate mapping before any usage log scan; never echo its content on errors.
     let mapping;
     if (ctx.values['provenance-map']) {
@@ -120,6 +137,13 @@ options.help = { type: 'boolean', short: 'h' };
 options.version = { type: 'boolean', short: 'v' };
 try {
   const { values } = parseArgs({ args: argv, options, strict: true, allowPositionals: false });
+  if (values['skill-method'] !== undefined) {
+    if (!['logs', 'hooks', 'combined'].includes(String(values['skill-method']))) throw new Error('Invalid --skill-method');
+    for (const flag of ['mcp','hooks','provenance','strict','markdown','skill-root','plugin-root','provenance-map']) {
+      if (values[flag] !== undefined && values[flag] !== false) throw new Error('--skill-method cannot combine with --' + flag);
+    }
+  }
+  if (values['skill-evidence'] !== undefined && (!values['skill-method'] || !String(values['skill-evidence']).trim())) throw new Error('--skill-evidence requires --skill-method and a nonempty path');
   if (values.output !== undefined && (!values.json && !values.markdown)) {
     throw new Error('--output requires --json or --markdown');
   }
@@ -156,5 +180,5 @@ try {
 
 await cli(argv, command, {
   name: 'agent-usage', version: '0.1.0', description: 'Local Codex Skill, MCP and offline Hook evidence statistics',
-  renderHeader: async ctx => (ctx.values.json || ctx.values.markdown || ctx.values.output !== undefined) && !('help' in ctx.values && ctx.values.help) ? '' : renderHeader(ctx),
+  renderHeader: async ctx => (ctx.values.json || ctx.values.markdown || ctx.values['skill-method'] || ctx.values.output !== undefined) && !('help' in ctx.values && ctx.values.help) ? '' : renderHeader(ctx),
 });

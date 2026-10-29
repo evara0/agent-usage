@@ -1,0 +1,616 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Skill 使用证据与对比报告 v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "mode",
+    "countUnit",
+    "sourceInstanceId",
+    "timeZone",
+    "period",
+    "generatedAt",
+    "deduplication",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "kind": {
+      "const": "skill-usage-comparison"
+    },
+    "mode": {
+      "enum": [
+        "logs",
+        "hooks",
+        "combined"
+      ]
+    },
+    "countUnit": {
+      "const": "skill-turn"
+    },
+    "sourceInstanceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "timeZone": {
+      "type": "string",
+      "minLength": 1
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "start": {
+              "type": "null"
+            },
+            "end": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "properties": {
+            "start": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "end": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      ]
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "mode"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "mode": {
+          "enum": [
+            "automated",
+            "agent-assisted",
+            "manual"
+          ]
+        }
+      }
+    },
+    "deduplication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleVersion",
+        "keyFields",
+        "unresolvedEvidence"
+      ],
+      "properties": {
+        "ruleVersion": {
+          "const": "skill-turn-v1"
+        },
+        "keyFields": {
+          "const": [
+            "sourceInstanceId",
+            "sessionId",
+            "turnId",
+            "skillKey"
+          ]
+        },
+        "unresolvedEvidence": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "evidence",
+              "reason",
+              "affectedSkillKeys",
+              "affectedMethods"
+            ],
+            "properties": {
+              "evidence": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10000,
+                "items": {
+                  "$ref": "#/$defs/evidence"
+                }
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "affectedSkillKeys": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    }
+                  }
+                ]
+              },
+              "affectedMethods": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "logs",
+                    "hooks"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "skills": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "skillKey",
+          "skill",
+          "logsExplicit",
+          "logsInferred",
+          "hooks",
+          "uniqueTotal",
+          "lastRecorded"
+        ],
+        "properties": {
+          "skillKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "skill": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "logsExplicit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "logsInferred": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hooks": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "uniqueTotal": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastRecorded": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logsExplicit",
+        "logsInferred",
+        "hooks",
+        "uniqueTotal",
+        "skills"
+      ],
+      "properties": {
+        "logsExplicit": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "logsInferred": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "uniqueTotal": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "skills": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "matched",
+        "logsOnly",
+        "hooksOnly"
+      ],
+      "properties": {
+        "matched": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sourceInstanceId",
+              "sessionId",
+              "turnId",
+              "skillKey"
+            ],
+            "properties": {
+              "sourceInstanceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "sessionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "turnId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "skillKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            }
+          }
+        },
+        "logsOnly": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sourceInstanceId",
+              "sessionId",
+              "turnId",
+              "skillKey"
+            ],
+            "properties": {
+              "sourceInstanceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "sessionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "turnId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "skillKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            }
+          }
+        },
+        "hooksOnly": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sourceInstanceId",
+              "sessionId",
+              "turnId",
+              "skillKey"
+            ],
+            "properties": {
+              "sourceInstanceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "sessionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "turnId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "skillKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "dependentRequired": {
+    "skills": [
+      "totals"
+    ],
+    "totals": [
+      "skills"
+    ]
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "sourceRecordId",
+        "sessionId",
+        "turnId",
+        "skillKey",
+        "type",
+        "occurredAt"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "logs",
+            "hooks"
+          ]
+        },
+        "sourceRecordId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "turnId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "skillKey": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": {
+          "enum": [
+            "skill_requested",
+            "skill_injected",
+            "skill_read_attempt"
+          ]
+        },
+        "occurredAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sourceRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fileId",
+            "line"
+          ],
+          "properties": {
+            "fileId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

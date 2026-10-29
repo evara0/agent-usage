@@ -8,11 +8,12 @@
     "skillusage": "dist/index.mjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "schemas"
   ],
   "scripts": {
-    "test": "tsc -p tsconfig.test.json && node --test .test-dist/tests/codex.test.js .test-dist/tests/contracts.test.js .test-dist/tests/markdown.test.js .test-dist/tests/mcp.test.js .test-dist/tests/mcp-table.test.js .test-dist/tests/provenance.test.js .test-dist/tests/hooks.test.js .test-dist/tests/hooks-table.test.js",
-    "test:cli": "tsdown && node --test tests/cli.test.mjs tests/mcp-cli.test.mjs tests/provenance-cli.test.mjs tests/hooks-cli.test.mjs tests/integration-cli.test.mjs",
+    "test": "tsc -p tsconfig.test.json && node --test .test-dist/tests/codex.test.js .test-dist/tests/contracts.test.js .test-dist/tests/markdown.test.js .test-dist/tests/mcp.test.js .test-dist/tests/mcp-table.test.js .test-dist/tests/provenance.test.js .test-dist/tests/hooks.test.js .test-dist/tests/hooks-table.test.js .test-dist/tests/skill-evidence.test.js",
+    "test:cli": "tsdown && node --test tests/cli.test.mjs tests/mcp-cli.test.mjs tests/provenance-cli.test.mjs tests/hooks-cli.test.mjs tests/integration-cli.test.mjs tests/skill-comparison-cli.test.mjs",
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "start": "node dist/index.mjs"
