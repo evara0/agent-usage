@@ -4,6 +4,7 @@ import { readSkillConfig, readSkillPackage, readStoredSkillPackages } from './sk
 import { collectSkillLogEvidence } from './adapters/skill-logs.js';
 import { createSkillReport, makeSkillPackage, mergeSkillPackages } from './skill-evidence.js';
 import type { SkillMode, SkillEvidencePackage } from './skill-evidence-types.js';
+import { resolveStoredHookSkills } from './skill-hook-mapping.js';
 
 export async function collectSkillComparison(options:{method:SkillMode;evidencePath?:string;codexDir?:string;days?:number}){
   let packet:SkillEvidencePackage;
@@ -13,7 +14,7 @@ export async function collectSkillComparison(options:{method:SkillMode;evidenceP
     const config=await readSkillConfig(join(root,'usage-skills','config.json'));
     const packets:SkillEvidencePackage[]=[];
     if(options.method!=='hooks')packets.push(await collectSkillLogEvidence(root,config));
-    if(options.method!=='logs')packets.push(...await readStoredSkillPackages(join(root,'usage-skills')));
+    if(options.method!=='logs')packets.push(...(await readStoredSkillPackages(join(root,'usage-skills'))).map(p=>resolveStoredHookSkills(p,config)));
     packets.unshift(makeSkillPackage(config.sourceInstanceId));
     packet=mergeSkillPackages(packets);
   }

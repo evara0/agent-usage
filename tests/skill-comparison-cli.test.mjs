@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {test} from 'node:test';
-import {mkdtemp,mkdir,readFile,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,readFile,writeFile,rm,readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,dirname,basename,resolve} from 'node:path';
 const sample='docs/examples/skill-comparison-combined.json';
@@ -81,4 +81,25 @@ test('Hook command writes portable evidence atomically and fails open without ra
  const failed=spawnSync(process.execPath,['dist/skill-hook-entry.mjs','--config','nonexistent','--home',dir],
   {input:'{"secret":"never-print-this"}',encoding:'utf8'});
  assert.equal(failed.status,0);assert.equal(failed.stdout,'');assert(!failed.stderr.includes('never-print-this'));
+});
+
+test('updated explicit mapping reconciles retained native Hook evidence read-only and explains remaining unknowns',async t=>{
+ const dir=await temp(t),store=join(dir,'usage-skills');await mkdir(store);
+ const config=join(store,'config.json');
+ await writeFile(config,JSON.stringify({schemaVersion:1,sourceInstanceId:'mapping-test',skills:[]}));
+ const input={hook_event_name:'PreToolUse',session_id:'s',turn_id:'t',tool_use_id:'c',tool_name:'Bash',
+  tool_input:{command:'Get-Content C:/demo/skills/new-skill/SKILL.md'}};
+ const collected=spawnSync(process.execPath,['dist/skill-hook-entry.mjs','--config',config,'--home',dir],
+  {input:JSON.stringify(input),encoding:'utf8'});
+ assert.equal(collected.status,0,collected.stderr);
+ const packet=join(store,(await readdir(store)).find(f=>f.startsWith('evidence-')));
+ const original=await readFile(packet,'utf8');
+ const unknown=run(['--skill-method','hooks','--codex-dir',dir]);
+ assert.equal(unknown.status,0,unknown.stderr);assert.match(unknown.stdout,/Unresolved candidates 1 \(unmapped skill 1\)/);
+ await writeFile(config,JSON.stringify({schemaVersion:1,sourceInstanceId:'mapping-test',
+  skills:[{skillKey:'standalone:new-skill',names:['new-skill'],paths:['C:/demo/skills/new-skill/SKILL.md']}]}));
+ const ready=run(['--skill-method','hooks','--codex-dir',dir,'--json']);
+ assert.equal(ready.status,0,ready.stderr);assert.equal(JSON.parse(ready.stdout).totals.hooks,1);
+ assert.equal(JSON.parse(ready.stdout).deduplication.unresolvedEvidence.length,0);
+ assert.equal(await readFile(packet,'utf8'),original,'query must not rewrite retained packages');
 });

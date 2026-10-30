@@ -123,6 +123,10 @@ export function pending(evidence: SkillEvidence[], reason: string): UnresolvedSk
 }
 const lexical = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const projection = (e: SkillEvidence) => JSON.stringify([e.method,e.sourceRecordId,e.sessionId,e.turnId,e.skillKey,e.type,e.occurredAt]);
+export function skillEvidenceInView(e:SkillEvidence,p:Pick<SkillEvidencePackage,'mode'|'period'>):boolean{
+  return (p.mode==='combined'||e.method===p.mode)&&(e.occurredAt===null||p.period.start===null||
+    (Date.parse(e.occurredAt)>=Date.parse(p.period.start)&&Date.parse(e.occurredAt)<Date.parse(p.period.end!)));
+}
 export function createSkillReport(input: SkillEvidencePackage, options: {
   mode?: SkillMode; period?: SkillEvidencePackage['period']; generatedAt?: string; timeZone?: string
 } = {}): SkillComparisonReport {
@@ -157,9 +161,7 @@ export function createSkillReport(input: SkillEvidencePackage, options: {
       affectedMethods: [...new Set(u.affectedMethods)].sort(), affectedSkillKeys: u.affectedSkillKeys === null ? null : [...new Set(u.affectedSkillKeys)].sort() };
     return [JSON.stringify(normal),normal] as const;
   })).values()].sort((a,b)=>lexical(JSON.stringify(a),JSON.stringify(b)));
-  const selected = (e: SkillEvidence) => (p.mode === 'combined' || e.method === p.mode) &&
-    (e.occurredAt === null || p.period.start === null ||
-      (Date.parse(e.occurredAt) >= Date.parse(p.period.start) && Date.parse(e.occurredAt) < Date.parse(p.period.end!)));
+  const selected = (e: SkillEvidence) => skillEvidenceInView(e,p);
   const relevant = accepted.filter(selected);
   const relevantPending = unresolvedUnique.filter(u => u.evidence.some(selected));
   const rows = new Map<string, SkillComparisonRow>();

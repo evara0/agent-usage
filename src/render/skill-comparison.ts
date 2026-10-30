@@ -1,5 +1,6 @@
 import Table from 'cli-table3';
 import type { SkillComparisonReport } from '../skill-evidence-types.js';
+import { skillEvidenceInView } from '../skill-evidence.js';
 
 export function displaySkillTime(iso:string|null,timeZone:string):string{
   if(iso===null)return '—';
@@ -21,7 +22,17 @@ export function renderSkillComparison(report:SkillComparisonReport,limit=25):str
   const singleDay=start&&end&&start.endsWith('00:00')&&end.endsWith('00:00')&&Date.parse(end.slice(0,10))-Date.parse(start.slice(0,10))===86_400_000;
   const header=singleDay?'Date: '+start!.slice(0,10):'Period: '+period;
   const name=report.mode==='combined'?'Logs + Hooks':report.mode==='logs'?'Logs':'Hooks';
+  const unresolved=report.deduplication.unresolvedEvidence.flatMap(u=>u.evidence.filter(e=>skillEvidenceInView(e,report)));
+  const missing=new Map<string,number>();
+  for(const e of unresolved)for(const [field,label]of [['skillKey','unmapped skill'],['turnId','missing turn'],
+    ['sessionId','missing session'],['sourceRecordId','missing record ID'],['occurredAt','missing time']] as const){
+    if(e[field]===null)missing.set(label,(missing.get(label)??0)+1);
+  }
+  const knownGroups=Object.values(report.comparison).reduce((n,list)=>n+list.length,0);
+  const diagnostic=unresolved.length?'\nResolved evidence groups '+knownGroups+' · Unresolved candidates '+unresolved.length+
+    (missing.size?' ('+[...missing].map(([reason,n])=>reason+' '+n).join(', ')+')':'')+
+    '\nSelected counts shown as — are unknown; inspect --json for details.':'';
   return header+'    Mode: '+name+'\n\n'+table.toString()+'\n\n'+
     (report.totals.uniqueTotal??'—')+' skill-turns · '+(report.totals.skills??'—')+' '+(report.totals.skills===1?'skill':'skills')+
-    (rows.length<report.skills.length?'\n'+(report.skills.length-rows.length)+' more skills (use --limit 0)':'');
+    (rows.length<report.skills.length?'\n'+(report.skills.length-rows.length)+' more skills (use --limit 0)':'')+diagnostic;
 }

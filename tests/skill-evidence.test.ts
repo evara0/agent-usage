@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { readFile, mkdtemp, mkdir, writeFile, rm, symlink, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve, basename } from 'node:path';
-import { makeSkillPackage, createSkillReport, parseSkillPackage, mergeSkillPackages } from '../src/skill-evidence.js';
+import { makeSkillPackage, createSkillReport, parseSkillPackage, mergeSkillPackages, pending } from '../src/skill-evidence.js';
+import { resolveStoredHookSkills } from '../src/skill-hook-mapping.js';
 import { readSkillPackage, writeSkillPackageAtomic, readStoredSkillPackages, readSkillConfig } from '../src/skill-evidence-io.js';
 import { collectSkillLogEvidence } from '../src/adapters/skill-logs.js';
 import { skillHookPackage } from '../src/skill-hook.js';
@@ -69,6 +70,41 @@ test('unknown skill affects every matching selected-source counter and total ski
   assert.equal(r.totals.uniqueTotal,null);
   assert.equal(r.totals.skills,null);
   assert.equal(r.totals.hooks,4);
+  const text=renderSkillComparison(r);
+  assert.match(text,/Resolved evidence groups 6 · Unresolved candidates 1 \(unmapped skill 1\)/);
+  assert.match(text,/Selected counts shown as — are unknown/);
+  const hooks=renderSkillComparison(createSkillReport(r,{mode:'hooks'}));
+  assert(!hooks.includes('Unresolved candidates'),'unselected-source pending must not trigger warnings');
+});
+
+test('stored native Hook mapping recovers only a unique explicit path digest without rewriting raw evidence',()=>{
+  const input={hook_event_name:'PreToolUse',session_id:'s',turn_id:'t',tool_use_id:'c',tool_name:'Bash',
+    tool_input:{command:"Get-Content 'C:/demo/skills/handoff/SKILL.md'"}};
+  const raw=skillHookPackage(input,{...config,skills:[]},'2026-10-28T10:00:00Z');
+  raw.deduplication.unresolvedEvidence=[pending(raw.evidence,'missing-hook-identity')];raw.evidence=[];
+  const before=JSON.stringify(raw);
+  const resolved=resolveStoredHookSkills(raw,config);
+  assert.equal(createSkillReport(resolved).totals.hooks,1);
+  assert.equal(resolved.deduplication.unresolvedEvidence.length,0);
+  assert.equal(JSON.stringify(raw),before);
+  assert.equal(createSkillReport(resolveStoredHookSkills(raw,{...config,skills:[]})).totals.hooks,null);
+  const ambiguous={...config,skills:[...config.skills,{...config.skills[0]!,skillKey:'other',paths:['c:/DEMO/skills/handoff/SKILL.md']}]};
+  assert.equal(createSkillReport(resolveStoredHookSkills(raw,ambiguous)).totals.hooks,null);
+  assert.equal(resolveStoredHookSkills({...raw,producer:{name:'other',version:'1',mode:'manual'}},config).evidence.length,0);
+  assert.equal(resolveStoredHookSkills({...raw,sourceInstanceId:'another-home'},config).evidence.length,0);
+  const missingTurn=structuredClone(raw);missingTurn.deduplication.unresolvedEvidence[0]!.evidence[0]!.turnId=null;
+  const r=createSkillReport(resolveStoredHookSkills(missingTurn,config));
+  assert.equal(r.totals.hooks,null);assert.equal(r.deduplication.unresolvedEvidence[0]!.evidence[0]!.skillKey,'standalone:handoff');
+  const slash=skillHookPackage({...input,tool_input:{command:'Get-Content C:\\demo\\skills\\handoff\\SKILL.md'}},{...config,skills:[]},'2026-10-28T10:00:00Z');
+  slash.deduplication.unresolvedEvidence=[pending(slash.evidence,'missing-hook-identity')];slash.evidence=[];
+  assert.equal(createSkillReport(resolveStoredHookSkills(slash,config)).totals.hooks,1);
+});
+
+test('unresolved diagnostics respect the selected time window',()=>{
+  const old:SkillEvidence={method:'hooks',sourceRecordId:'old',sessionId:'s',turnId:'t',skillKey:null,
+    type:'skill_read_attempt',occurredAt:'2026-10-01T00:00:00Z'};
+  const report=createSkillReport(makeSkillPackage('home',[old]),{period:{start:'2026-10-28T00:00:00Z',end:'2026-10-29T00:00:00Z'}});
+  assert(!renderSkillComparison(report).includes('Unresolved candidates'));
 });
 test('conflicts quarantine all candidates independent of order and remain quarantined on reimport',async()=>{
   const p=await sample();

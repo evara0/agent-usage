@@ -83,3 +83,5 @@ openspec validate --archived --strict --no-interactive
 保留 usage-skills 中的 config.json、证据包及未决项；不要通过修改原始日志修正汇总。只读重放见 docs/skill-comparison.md。2026-10-30 本机正常信任后，真实 PreToolUse / Bash 已生成证据包；两次同轮读取与日志精确归组后得到 0/1/1/1，重复导入不增计。该结论限于实测路径，不代表完整覆盖。
 
 用户级 Hook 配置在 Codex home 的 hooks.json；停止或启用使用 /hooks，修改定义后须正常重新信任。当前安装使用固定工具目录，不依赖 worktree 的 dist。可选诊断入口仅保留 usage-skills/diagnostics/latest.json，记录阶段和字段形状，不参与统计。PowerShell 启动问题、回退和验收证据见 [Skill Hook 验证](docs/skill-hook-validation.md)。新增技能或插件版本后须显式更新技能映射，否则进入未决，不能直接当作零使用。
+
+遇到计数全为 — 时，先区分未选来源和未知结果；新 CLI 会显示当前范围的未决候选及缺失字段。更新显式映射可让本采集器 v1 的路径摘要记录在查询时重新匹配，原始包保留。个人报告 CLI 的固定入口为 Codex home 下 tools/agent-usage/cli.mjs，独立于正在运行的采集器，更新报告无需重写 Hook 定义。

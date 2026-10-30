@@ -15,6 +15,8 @@ node dist/index.mjs --skill-method combined --skill-evidence docs/examples/skill
 
 列固定为 Skill、Logs Explicit、Logs Inferred、Hooks、Unique Total、Last Recorded。0 是已知零；— 是未选择的来源或无法确定的值。时间按 JSON 的 timeZone 显示完整日期和分钟。页脚 skill-turns 是技能轮次记录之和，不是独立会话轮次数。
 
+所选范围有未决候选时，表格追加 Resolved evidence groups 与 Unresolved candidates 及缺失字段摘要。前者只是已解析证据的归组数量，不能冒充完整总数；所选列仍为 — 时表示严格计数未知。未选来源或窗口外的未决项不触发该提示，完整 JSON 仍保留待核对明细。
+
 样例两来源共有 3 组：日志明确 2、日志推断 3、Hook 4、并集 6。这只是规则演示，不表示当前个人使用量。
 
 ## 使用自己的数据
@@ -36,6 +38,8 @@ node dist/index.mjs --skill-method combined --skill-evidence docs/examples/skill
 ~~~
 
 sourceInstanceId 是用户确认的同一数据实例标识，不能每次启动随机生成。names 匹配原始指定/注入名称，paths 匹配原始静态读取路径；路径应为绝对路径。插件同名、多项目相对路径及多候选不要通过短名称猜测；没有唯一显式映射就进入待核对集合。此配置不是旧 --provenance-map。
+
+新增技能、插件版本或项目内技能后，需补充明确的 paths 映射。查询本地 native Hook 包时，CLI 仅对本采集器 v1、同实例的原生读取记录，将 sourceRecordId 的已记录路径 SHA-256 与显式配置路径精确匹配；唯一匹配可修复缺 skillKey 的读取投影，原始包不变。Windows 两种分隔符均核对，但同一路径配置到多个技能、缺 turnId、摘要不符或其他 producer 都不会据此补成确定计数。显式 --skill-evidence 重放不读取个人映射，也不隐式修正导入包。
 
 ~~~powershell
 node dist/index.mjs --skill-method logs --codex-dir E:/example/codex-home --days 30
