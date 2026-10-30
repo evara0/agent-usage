@@ -96,4 +96,6 @@ Schema 见 schemas/skill-evidence-v1.schema.json，字段间关系、时区真�
 
 当前可核对：JSON 样例重算、运行时校验、三种表格快照、跨批重放与冲突、合成日志和 stdin Hook 的本地脚本链路。
 
-当前未认证：实际客户端 PreToolUse 执行、正常登录/信任后的原生 stdin 样本、所有客户端路径与个人历史完整性。详见 docs/skill-hook-validation.md。不能把独立脚本的合成 stdin 测试称作真实宿主 Hook 验证。
+2026-10-30 已在本机 Windows / codex-cli 0.166.0-alpha.5.1 正常信任后验证真实 PreToolUse / Bash：当前聊天两次同轮读取形成两份 Hook 包，与两条日志归为一个共同技能轮次，表格为 0/1/1/1。尚未认证其他客户端路径与个人历史完整性。详见 docs/skill-hook-validation.md；独立脚本的合成 stdin 测试仍与真实宿主验证分开标记。
+
+Windows 诊断入口：scripts/skill-hook-launcher.mjs 可包裹已构建采集器，参数为 --collector、--config、--home、--diagnostics-dir。诊断目录应放在 usage-skills 的独立子目录，latest.json 不属于技能证据；文件只反映最近一次调用。不要把以引号开头的可执行文件路径直接当作通用 PowerShell 命令。2026-10-30 的复现、启动修复和重新信任要求见 skill-hook-validation.md。

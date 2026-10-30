@@ -1,8 +1,8 @@
 ---
 title: "agent-usage · 项目维护卡"
 project: "agent-usage"
-updated: "2026-10-21"
-status: "Windows / Node 22.22.2 回归通过；单次同步 Hook 链路已验证"
+updated: "2026-10-30"
+status: "Windows / Node 24.14.0；真实 Skill Hook 采集与日志同轮去重已验证"
 environments:
   - "Windows 本地 Node.js"
 ---
@@ -27,9 +27,9 @@ TypeScript / Node ESM CLI，pnpm 管理依赖，tsdown 构建，node:test 测试
 
 ## 本地运行
 
-需要 Node **22.18.0 至 22.x，或 >=24.11.0**（`^22.18.0 || >=24.11.0`）及 pnpm；构建目标为 `node22.18`。已验证 Windows / Node 22.22.2，其他版本和平台尚未实测。
+需要 Node **22.18.0 至 22.x，或 >=24.11.0**（`^22.18.0 || >=24.11.0`）及 pnpm；构建目标为 `node22.18`。已验证 Windows / Node 22.22.2 与 24.14.0，其他平台尚未实测。
 
-在 `G:/agent-usage` 执行：
+在当前仓库根目录执行；本次工作树为 `E:/261027-agent_usage-tool/worktrees/skill-collection-contract`：
 
 ```powershell
 pnpm install --frozen-lockfile
@@ -53,7 +53,7 @@ pnpm run test:cli
 
 依赖变更更新 `package.json` 和唯一锁文件；新增测试须接入检查入口。纯文档修改无需构建或应用测试。
 
-构建会替换 `dist/`，模块测试生成 `.test-dist/`；二者均可重建。`.local/`、`handoff/`、原始日志、个人映射不进入 Git；包清单只包含 `dist`。无远端部署或自动更新流程。
+构建会替换 `dist/`，模块测试生成 `.test-dist/`；二者均可重建。`.local/`、`handoff/`、原始日志、个人映射不进入 Git；包清单包含 `dist`、`schemas` 和 `scripts/skill-hook-launcher.mjs`。无远端部署或自动更新流程。
 
 ## 规范与历史记录
 
@@ -80,4 +80,6 @@ openspec validate --archived --strict --no-interactive
 
 --skill-method 为可选新模式，旧默认与 --hooks 处理器统计不变。Schema 随包发布在 schemas/；采集命令为 dist/skill-hook-entry.mjs。
 
-保留 usage-skills 中的 config.json、证据包及未决项；不要通过修改原始日志修正汇总。只读重放见 docs/skill-comparison.md。当前回归使用合成输入，真实宿主 Hook 仍待隔离登录和正常信任验证，不能报告全面覆盖。
+保留 usage-skills 中的 config.json、证据包及未决项；不要通过修改原始日志修正汇总。只读重放见 docs/skill-comparison.md。2026-10-30 本机正常信任后，真实 PreToolUse / Bash 已生成证据包；两次同轮读取与日志精确归组后得到 0/1/1/1，重复导入不增计。该结论限于实测路径，不代表完整覆盖。
+
+用户级 Hook 配置在 Codex home 的 hooks.json；停止或启用使用 /hooks，修改定义后须正常重新信任。当前安装使用固定工具目录，不依赖 worktree 的 dist。可选诊断入口仅保留 usage-skills/diagnostics/latest.json，记录阶段和字段形状，不参与统计。PowerShell 启动问题、回退和验收证据见 [Skill Hook 验证](docs/skill-hook-validation.md)。新增技能或插件版本后须显式更新技能映射，否则进入未决，不能直接当作零使用。

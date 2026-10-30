@@ -129,3 +129,5 @@ node dist/index.mjs --skill-method combined --skill-evidence docs/examples/skill
 ```
 
 实际采集须先显式配置实例和技能映射；--skill-evidence 可独立重放。新模式不自动安装 Hook。见 [使用与输入规范](docs/skill-comparison.md)、[整理指令](docs/skill-evidence-extraction.md)及[真实验证边界](docs/skill-hook-validation.md)。
+
+2026-10-30 已验证本机真实 PreToolUse / Bash 采集及双来源去重：同轮两次读取，日志和 Hook 各保留两条原始证据，统计各为 1，合并仍为 1。该结果限于实测路径，其他路径和完整历史覆盖仍需抽查。
