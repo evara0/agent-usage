@@ -1,5 +1,6 @@
 export type SkillMethod = 'logs' | 'hooks';
 export type SkillMode = SkillMethod | 'combined';
+export type SkillCountPolicy = 'resolved' | 'strict';
 export type SkillEvidenceType = 'skill_requested' | 'skill_injected' | 'skill_read_attempt';
 export interface SkillEvidence {
   method: SkillMethod;
@@ -33,6 +34,7 @@ export interface SkillEvidencePackage {
   kind: 'skill-usage-comparison';
   mode: SkillMode;
   countUnit: 'skill-turn';
+  countPolicy?: SkillCountPolicy;
   sourceInstanceId: string;
   timeZone: string;
   period: { start: string | null; end: string | null };

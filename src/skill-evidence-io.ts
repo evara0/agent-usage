@@ -46,6 +46,9 @@ export interface SkillCollectionConfig {
 }
 export async function readSkillConfig(path:string):Promise<SkillCollectionConfig>{
   let data:unknown;try{data=JSON.parse(await readSkillText(path,64*1024));}catch{fail('config.read');}
+  return parseSkillConfig(data);
+}
+export function parseSkillConfig(data:unknown):SkillCollectionConfig{
   if(!object(data)||data.schemaVersion!==1||!id(data.sourceInstanceId)||!Array.isArray(data.skills)||data.skills.length>256||
     Object.keys(data).some(k=>!['schemaVersion','sourceInstanceId','skills'].includes(k)))fail('config');
   const keys=new Set<string>();

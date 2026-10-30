@@ -6,7 +6,7 @@
 
 ## 快速开始
 
-需要 **Node.js 22.18.0 至 22.x，或 24.11.0 及以上版本**，以及 **pnpm**。已在 Windows / Node 22.22.2 验证，其他版本和平台尚未实测。
+需要 **Node.js 22.18.0 至 22.x，或 24.11.0 及以上版本**，以及 **pnpm**。已在 Windows / Node 22.22.2、24.14.0 验证，其他平台尚未实测。
 
 在项目根目录执行：
 
@@ -17,6 +17,17 @@ node ./dist/index.mjs --days 30
 ```
 
 默认读取 `~/.codex`，展示最近 30 天使用记录最多的前 25 个 Skill。省略 `--days` 统计全部历史，`--limit 0` 展示全部行。修改源码后需重新构建。
+
+要使用日志/Hook 双来源统计，每个使用者先生成自己的本机映射：
+
+```powershell
+node ./dist/index.mjs setup
+node ./dist/index.mjs --skill-method logs --days 1
+```
+
+新增技能或插件后执行 `node ./dist/index.mjs skills refresh`。项目内技能需显式指定范围，例如 `node ./dist/index.mjs skills refresh --project-root E:/your-project`；自定义技能集合用 `--skill-root`，单个插件版本目录用 `--plugin-root`，这些选项均可重复。目录设置会保留供后续刷新使用，旧身份、人工配置和历史路径映射不会因文件删除而自动移除。
+
+要启用未来的 Hook 采集，再运行 `node ./dist/index.mjs hooks install`，审查生成的采集器及启动文件，并在 Codex `/hooks` 正常信任 PreToolUse / Bash。命令保留其他 Hook 配置并创建备份；不会修改信任状态。初始化与查询均可用 `--codex-dir` 指定同一数据实例，双来源模式的默认目录优先取 `CODEX_HOME`，其次为 `~/.codex`。
 
 ## 选择统计内容
 
@@ -128,8 +139,8 @@ $report.skills | Select-Object skill, total, inferredAuto, lastUsedAt
 node dist/index.mjs --skill-method combined --skill-evidence docs/examples/skill-comparison-combined.json
 ```
 
-实际采集须先显式配置实例和技能映射；--skill-evidence 可独立重放。新模式不自动安装 Hook。见 [使用与输入规范](docs/skill-comparison.md)、[整理指令](docs/skill-evidence-extraction.md)及[真实验证边界](docs/skill-hook-validation.md)。
+实际采集先运行 setup 生成自己的实例和映射，Hook 需另行 hooks install 并正常信任；统计查询本身不写配置。--skill-evidence 可独立重放。日常统计默认 countPolicy=resolved，只计算身份完整证据，另列未决；--skill-counts strict 保留完整总数无法确定时显示 — 的严格口径。见 [使用与输入规范](docs/skill-comparison.md)、[整理指令](docs/skill-evidence-extraction.md)及[真实验证边界](docs/skill-hook-validation.md)。
 
 2026-10-30 已验证本机真实 PreToolUse / Bash 采集及双来源去重：同轮两次读取，日志和 Hook 各保留两条原始证据，统计各为 1，合并仍为 1。该结果限于实测路径，其他路径和完整历史覆盖仍需抽查。
 
-若选中列全部显示 —，先看新增页脚的未决候选与缺失字段；不是零使用。更新明确的技能路径映射后，本采集器 v1 的原生 Hook 路径摘要可在查询时只读重匹配，原始包保留。当前本机独立报告入口为 `$env:USERPROFILE\.codex\tools\agent-usage\cli.mjs`；它可更新而无需修改运行中的 Hook 定义。
+严格模式下若选中列显示 —，先看页脚的未决候选与缺失字段；不是零使用。更新映射后，本采集器 v1 的原生 Hook 路径摘要可在查询时只读重匹配，原始包保留。个人维护环境的独立报告入口可设在 `$env:USERPROFILE\.codex\tools\agent-usage\cli.mjs`；其他使用者直接运行构建后的 dist/index.mjs 即可，不依赖此路径或他人的映射。

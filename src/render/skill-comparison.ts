@@ -29,10 +29,10 @@ export function renderSkillComparison(report:SkillComparisonReport,limit=25):str
     if(e[field]===null)missing.set(label,(missing.get(label)??0)+1);
   }
   const knownGroups=Object.values(report.comparison).reduce((n,list)=>n+list.length,0);
-  const diagnostic=unresolved.length?'\nResolved evidence groups '+knownGroups+' · Unresolved candidates '+unresolved.length+
+  const diagnostic=unresolved.length?'\n'+(report.countPolicy==='resolved'?'':'Resolved evidence groups '+knownGroups+' · ')+'Unresolved candidates '+unresolved.length+
     (missing.size?' ('+[...missing].map(([reason,n])=>reason+' '+n).join(', ')+')':'')+
-    '\nSelected counts shown as — are unknown; inspect --json for details.':'';
-  return header+'    Mode: '+name+'\n\n'+table.toString()+'\n\n'+
+    (report.countPolicy==='resolved'?'\nCounts use resolved evidence only; unresolved candidates are excluded.':'\nSelected counts shown as — are unknown; inspect --json for details.') :'';
+  return header+'    Mode: '+name+(report.countPolicy==='resolved'?'    Counts Resolved evidence':'')+'\n\n'+table.toString()+'\n\n'+
     (report.totals.uniqueTotal??'—')+' skill-turns · '+(report.totals.skills??'—')+' '+(report.totals.skills===1?'skill':'skills')+
     (rows.length<report.skills.length?'\n'+(report.skills.length-rows.length)+' more skills (use --limit 0)':'')+diagnostic;
 }

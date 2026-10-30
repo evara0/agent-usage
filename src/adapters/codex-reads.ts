@@ -20,8 +20,20 @@ export function codexSkillReads(call: ToolCall): string[] {
 
 /** Preserve exact static operands for explicitly configured identity resolution. */
 export function codexSkillReadPaths(call: ToolCall): string[] {
+  return [...new Set(codexSkillReadRequests(call).map(read=>read.path))];
+}
+
+export interface SkillReadRequest {path:string;workdir?:string|null}
+interface ShellReadCommand {command:unknown;workdir?:string|null}
+function workingDirectory(args:Record<string,unknown>):string|null|undefined{
+  const key=Object.hasOwn(args,'workdir')?'workdir':Object.hasOwn(args,'cwd')?'cwd':undefined;
+  return key===undefined?undefined:typeof args[key]==='string'?args[key] as string:null;
+}
+
+/** Keep explicitly logged per-call cwd; null means dynamic/unknown, not default. */
+export function codexSkillReadRequests(call:ToolCall):SkillReadRequest[]{
   const name = typeof call.name === 'string' ? call.name.split('.').at(-1) : undefined;
-  const commands: unknown[] = [];
+  const commands: ShellReadCommand[] = [];
   if (call.type === 'function_call' && typeof call.arguments === 'string') {
     let args: Record<string, unknown>;
     try {
@@ -31,31 +43,33 @@ export function codexSkillReadPaths(call: ToolCall): string[] {
     } catch {
       return [];
     }
-    if (name && SHELL_TOOLS.has(name)) commands.push(args.cmd ?? args.command);
+    if (name && SHELL_TOOLS.has(name)) commands.push({command:args.cmd??args.command,workdir:workingDirectory(args)});
     else if (name === 'exec' && typeof args.code === 'string') commands.push(...scriptCommands(args.code));
   } else if (call.type === 'custom_tool_call' && typeof call.input === 'string') {
-    if (name && SHELL_TOOLS.has(name)) commands.push(call.input);
+    if (name && SHELL_TOOLS.has(name)) commands.push({command:call.input});
     else if (name === 'exec') commands.push(...scriptCommands(call.input));
   }
 
-  const names = new Set<string>();
-  for (const command of commands) {
+  const reads = new Map<string,SkillReadRequest>();
+  for (const {command,workdir} of commands) {
     for (const path of readPaths(command)) {
       const name = SKILL_PATH.exec(path)?.[1];
-      if (name && name !== '.' && name !== '..' && name !== '.system') names.add(path);
+      if (name && name !== '.' && name !== '..' && name !== '.system'){
+        const request={path,...(workdir===undefined?{}:{workdir})};reads.set(JSON.stringify(request),request);
+      }
     }
   }
-  return [...names];
+  return [...reads.values()];
 }
 
-function scriptCommands(code: string): unknown[] {
+function scriptCommands(code: string): ShellReadCommand[] {
   let tree: Node;
   try {
     tree = parse(code, { ecmaVersion: 'latest', sourceType: 'module', allowAwaitOutsideFunction: true });
   } catch {
     return [];
   }
-  const commands: unknown[] = [];
+  const commands: ShellReadCommand[] = [];
   const pending = [tree];
   while (pending.length) {
     const node = pending.pop()!;
@@ -67,7 +81,9 @@ function scriptCommands(code: string): unknown[] {
             (member.object as Identifier).name === 'tools' && member.property.type === 'Identifier' &&
             SHELL_TOOLS.has((member.property as Identifier).name)) {
           const arg = call.arguments[0];
-          if (arg?.type === 'ObjectExpression') commands.push(objectCommand(arg as ObjectExpression));
+          if (arg?.type === 'ObjectExpression'){
+            const command=objectCommand(arg as ObjectExpression);if(command)commands.push(command);
+          }
         }
       }
     }
@@ -82,7 +98,7 @@ function scriptCommands(code: string): unknown[] {
   return commands;
 }
 
-function objectCommand(object: ObjectExpression): unknown {
+function objectCommand(object: ObjectExpression): ShellReadCommand|undefined {
   const fields = new Map<string, unknown>();
   for (const property of object.properties) {
     // A spread/computed key could replace an earlier command at runtime.
@@ -91,7 +107,7 @@ function objectCommand(object: ObjectExpression): unknown {
       property.key.type === 'Literal' ? property.key.value : undefined;
     if (typeof key === 'string') fields.set(key, staticValue(property.value));
   }
-  return fields.has('cmd') ? fields.get('cmd') : fields.get('command');
+  return {command:fields.has('cmd')?fields.get('cmd'):fields.get('command'),workdir:workingDirectory(Object.fromEntries(fields))};
 }
 
 function staticValue(node: Node): unknown {

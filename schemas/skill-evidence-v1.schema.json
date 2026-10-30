@@ -32,6 +32,7 @@
     "countUnit": {
       "const": "skill-turn"
     },
+    "countPolicy": {"enum": ["resolved", "strict"], "default": "strict"},
     "sourceInstanceId": {
       "type": "string",
       "minLength": 1,

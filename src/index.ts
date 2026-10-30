@@ -19,16 +19,20 @@ import { renderProvenanceTable } from './render/provenance.js';
 import { collectHookEvents } from './adapters/hooks.js';
 import { collectSkillComparison } from './skill-comparison-cli.js';
 import { renderSkillComparison } from './render/skill-comparison.js';
-import type { SkillMode } from './skill-evidence-types.js';
+import type { SkillMode,SkillCountPolicy } from './skill-evidence-types.js';
 import { aggregateHookEvents } from './hooks-aggregate.js';
 import { renderHooksTable } from './render/hooks-table.js';
+import { runSkillManagement } from './skill-management-cli.js';
+
+if(await runSkillManagement(process.argv.slice(2)))process.exit(process.exitCode??0);
 
 const command = define({
   name: 'agent-usage',
-  description: 'Local Codex Skill, MCP and offline Hook evidence statistics',
+  description: 'Local Codex Skill, MCP and offline Hook evidence statistics. Setup: setup; skills refresh; hooks install.',
   args: {
     'skill-method': { type: 'string', description: 'Skill evidence mode: logs, hooks or combined' },
     'skill-evidence': { type: 'string', description: 'Replay a structured Skill evidence JSON package' },
+    'skill-counts': { type: 'string', description: 'Skill count policy: resolved (default) or strict' },
     json: { type: 'boolean', description: 'Output complete machine-readable JSON' },
     markdown: { type: 'boolean', description: 'Output a complete Skill Markdown report' },
     mcp: { type: 'boolean', description: 'Show MCP statistics instead of Skills (table or JSON)' },
@@ -56,7 +60,8 @@ const command = define({
     if (ctx.values['skill-method']) {
       try {
         const report = await collectSkillComparison({ method: ctx.values['skill-method'] as SkillMode,
-          evidencePath: ctx.values['skill-evidence'], codexDir: ctx.values['codex-dir'], days });
+          evidencePath: ctx.values['skill-evidence'], codexDir: ctx.values['codex-dir'], days,
+          countPolicy:ctx.values['skill-counts'] as SkillCountPolicy|undefined });
         if (ctx.values.json) await emitReport(JSON.stringify(report, null, 2), ctx.values.output);
         else console.log(renderSkillComparison(report, limit));
       } catch (error) {
@@ -144,6 +149,7 @@ try {
     }
   }
   if (values['skill-evidence'] !== undefined && (!values['skill-method'] || !String(values['skill-evidence']).trim())) throw new Error('--skill-evidence requires --skill-method and a nonempty path');
+  if(values['skill-counts']!==undefined&&(!values['skill-method']||!['resolved','strict'].includes(String(values['skill-counts']))))throw new Error('--skill-counts requires --skill-method and resolved or strict');
   if (values.output !== undefined && (!values.json && !values.markdown)) {
     throw new Error('--output requires --json or --markdown');
   }

@@ -70,7 +70,7 @@ openspec validate --archived --strict --no-interactive
 
 先检查 stderr 和退出码，再按 [README 排障表](README.md#排障与详细说明)核对输入目录、窗口及模式诊断。保存报告优先用 `--output`，直接写无 BOM UTF-8；它会覆盖指定目标。
 
-来源歧义查 `provenance.diagnostics` 与映射，去掉 `--provenance` 可恢复普通统计。Hook 查首行单位、`scan`、`coverage`；程序不会安装或运行 Hook。
+来源歧义查 `provenance.diagnostics` 与映射，去掉 `--provenance` 可恢复普通统计。旧 --hooks 模式查首行单位、scan、coverage；它只读取处理器证据。新采集器需显式 hooks install 注册并由用户正常信任，统计查询不会隐式安装。
 
 保留原始 Codex 数据、个人映射及交接资料。代码可从 Git 历史恢复后重新构建，已有乱码报告可重新导出；不要通过改写或删除日志修正统计。
 
@@ -84,4 +84,8 @@ openspec validate --archived --strict --no-interactive
 
 用户级 Hook 配置在 Codex home 的 hooks.json；停止或启用使用 /hooks，修改定义后须正常重新信任。当前安装使用固定工具目录，不依赖 worktree 的 dist。可选诊断入口仅保留 usage-skills/diagnostics/latest.json，记录阶段和字段形状，不参与统计。PowerShell 启动问题、回退和验收证据见 [Skill Hook 验证](docs/skill-hook-validation.md)。新增技能或插件版本后须显式更新技能映射，否则进入未决，不能直接当作零使用。
 
-遇到计数全为 — 时，先区分未选来源和未知结果；新 CLI 会显示当前范围的未决候选及缺失字段。更新显式映射可让本采集器 v1 的路径摘要记录在查询时重新匹配，原始包保留。个人报告 CLI 的固定入口为 Codex home 下 tools/agent-usage/cli.mjs，独立于正在运行的采集器，更新报告无需重写 Hook 定义。
+日常新统计默认 resolved：只显示身份完整证据的去重结果，另列未决数；--skill-counts strict 恢复受未决影响时显示 — 的严格口径。更新映射可让本采集器 v1 的路径摘要在查询时重新匹配，原始包保留。个人维护环境的报告入口可设在 Codex home 下 tools/agent-usage/cli.mjs，独立于采集器；其他使用者直接运行构建后的 dist/index.mjs。
+
+首次执行 node dist/index.mjs setup；新增技能后执行 node dist/index.mjs skills refresh。项目范围用 --project-root，技能集合用 --skill-root，单个插件版本目录用 --plugin-root，均可重复，设置保存在 usage-skills/settings/discovery.json。刷新保留实例、人工别名及历史身份，有变更先备份。新统计与设置命令按 --codex-dir、CODEX_HOME、~/.codex 选择目录；原默认模式仍保持旧行为。
+
+显式 hooks install 将采集器安装到用户 home 的 tools/agent-usage/hooks/ 固定目录，保留其他 Hook 并备份 hooks.json；正常审查信任后开始采集。Windows 启动器经中文、空格和单引号路径检查，不修改执行策略；其他平台启动仍待实测。

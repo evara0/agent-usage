@@ -1,13 +1,26 @@
 import { readdir, lstat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join,isAbsolute,resolve,win32 } from 'node:path';
 import { createHash } from 'node:crypto';
-import { codexSkillReadPaths } from './codex-reads.js';
+import { codexSkillReadRequests } from './codex-reads.js';
 import { makeSkillPackage, pending, object, timestamp, id } from '../skill-evidence.js';
 import { readSkillText, noLinks, resolveSkill } from '../skill-evidence-io.js';
 import type { SkillCollectionConfig } from '../skill-evidence-io.js';
 import type { SkillEvidence, SkillEvidencePackage, UnresolvedSkillEvidence } from '../skill-evidence-types.js';
 
 const hash=(text:string)=>createHash('sha256').update(text).digest('hex');
+export function resolveLoggedSkillPath(file:string,workdir:string|null|undefined,cwd:string|null):string{
+  const windows=(value:string)=>/^(?:[A-Za-z]:[\\/]|\\\\)/.test(value);
+  if(windows(file)||isAbsolute(file))return file;
+  if(/^[A-Za-z]:/.test(file)||workdir!==undefined&&workdir!==null&&/^[A-Za-z]:(?![\\/])/.test(workdir))return file;
+  if(workdir===null)return file;
+  let base=workdir??cwd;
+  if(!base)return file;
+  if(!windows(base)&&!isAbsolute(base)){
+    if(!cwd||(!windows(cwd)&&!isAbsolute(cwd)))return file;
+    base=windows(cwd)?win32.resolve(cwd,base):resolve(cwd,base);
+  }
+  return windows(base)?win32.resolve(base,file):resolve(base,file);
+}
 export function unknownLog(reason:string,sourceRecordId:string):UnresolvedSkillEvidence{
   return pending([{method:'logs',sourceRecordId,sessionId:null,turnId:null,skillKey:null,
     type:'skill_read_attempt',occurredAt:null}],reason);
@@ -41,7 +54,7 @@ export async function collectSkillLogEvidence(root:string,config:SkillCollection
   for(const file of files.sort()){
     let text:string;try{text=await readSkillText(file);}catch{unknown.push(unknownLog('file-unreadable-or-oversize',hash(file)));continue;}
     const fileId=hash(file),lines=text.split(/\r?\n/);
-    let session:string|null=null,turn:string|null=null;
+    let session:string|null=null,turn:string|null=null,cwd:string|null=null;
     const sessionIds=new Set<string>(),fileEvidence:SkillEvidence[]=[];
     const emit=(row:Record<string,unknown>,payload:Record<string,unknown>,line:number,type:SkillEvidence['type'],
       value:string,by:'paths'|'names',suffix:string)=>{
@@ -61,8 +74,10 @@ export async function collectSkillLogEvidence(root:string,config:SkillCollection
       if(!object(row))continue;
       const p=object(row.payload)?row.payload:{};
       if(row.type==='session_meta'){
+        cwd=typeof p.cwd==='string'?p.cwd:null;
         if(id(p.id)){session=p.id;sessionIds.add(session);}continue;
       }
+      if(row.type==='turn_context'&&Object.hasOwn(p,'cwd'))cwd=typeof p.cwd==='string'?p.cwd:null;
       if(row.type==='turn_context'&&id(p.turn_id))turn=p.turn_id;
       if(['task_started','turn_started'].includes(p.type as string))turn=id(p.turn_id)?p.turn_id:null;
       if(['task_complete','task_completed','turn_complete','turn_completed','turn_aborted'].includes(p.type as string)){turn=null;continue;}
@@ -82,7 +97,8 @@ export async function collectSkillLogEvidence(root:string,config:SkillCollection
         }
       }
       if(p.type==='function_call'||p.type==='custom_tool_call'){
-        for(const path of codexSkillReadPaths(p))emit(row,p,index+1,'skill_read_attempt',path,'paths','before');
+        for(const read of codexSkillReadRequests(p))emit(row,p,index+1,'skill_read_attempt',
+          resolveLoggedSkillPath(read.path,read.workdir,cwd),'paths','before');
       }
     }
     if(sessionIds.size>1)for(const e of fileEvidence){unknown.push(pending([{...e,sessionId:null}],'conflicting-session-metadata'));}

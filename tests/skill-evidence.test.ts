@@ -6,7 +6,7 @@ import { join, dirname, resolve, basename } from 'node:path';
 import { makeSkillPackage, createSkillReport, parseSkillPackage, mergeSkillPackages, pending } from '../src/skill-evidence.js';
 import { resolveStoredHookSkills } from '../src/skill-hook-mapping.js';
 import { readSkillPackage, writeSkillPackageAtomic, readStoredSkillPackages, readSkillConfig } from '../src/skill-evidence-io.js';
-import { collectSkillLogEvidence } from '../src/adapters/skill-logs.js';
+import { collectSkillLogEvidence,resolveLoggedSkillPath } from '../src/adapters/skill-logs.js';
 import { skillHookPackage } from '../src/skill-hook.js';
 import { renderSkillComparison, displaySkillTime } from '../src/render/skill-comparison.js';
 import type { SkillEvidence, SkillEvidencePackage } from '../src/skill-evidence-types.js';
@@ -105,6 +105,46 @@ test('unresolved diagnostics respect the selected time window',()=>{
     type:'skill_read_attempt',occurredAt:'2026-10-01T00:00:00Z'};
   const report=createSkillReport(makeSkillPackage('home',[old]),{period:{start:'2026-10-28T00:00:00Z',end:'2026-10-29T00:00:00Z'}});
   assert(!renderSkillComparison(report).includes('Unresolved candidates'));
+});
+
+test('resolved policy counts complete evidence and keeps unresolved candidates and strict replay distinct',async()=>{
+  const p=await sample();
+  const raw={...p,evidence:[...p.evidence,{...p.evidence[0]!,sourceRecordId:'unmapped',skillKey:null}]};
+  const resolved=createSkillReport(raw,{countPolicy:'resolved'});
+  assert.equal(resolved.totals.uniqueTotal,6);assert.equal(resolved.totals.logsExplicit,2);
+  assert.equal(resolved.deduplication.unresolvedEvidence.length,1);
+  assert.equal(parseSkillPackage(resolved).totals!.uniqueTotal,6);
+  assert.equal(createSkillReport(resolved,{countPolicy:'strict'}).totals.uniqueTotal,null);
+  assert.match(renderSkillComparison(resolved),/Counts Resolved evidence/);
+  assert.match(renderSkillComparison(resolved),/unresolved candidates are excluded/);
+  assert.throws(()=>parseSkillPackage({...resolved,countPolicy:'strict'}),/summary/);
+  assert.throws(()=>parseSkillPackage({...resolved,countPolicy:'invalid'}),/countPolicy/);
+});
+
+test('relative skill operands use logged cwd and static per-call workdir, never current process cwd',async t=>{
+  const dir=await temp(t);await mkdir(join(dir,'sessions'));
+  const first=join(dir,'project-a'),second=join(dir,'project-b');
+  const operand='.agents/skills/demo/SKILL.md';
+  const mapping={schemaVersion:1 as const,sourceInstanceId:'relative-test',skills:[
+    {skillKey:'project:a:demo',names:[],paths:[join(first,operand)]},
+    {skillKey:'project:b:demo',names:[],paths:[join(second,operand)]},
+  ]};
+  const call=(id:string,args:unknown)=>({type:'response_item',timestamp:'2026-10-30T01:00:00Z',
+    payload:{type:'function_call',name:'exec_command',call_id:id,arguments:JSON.stringify(args)}});
+  await writeFile(join(dir,'sessions','relative.jsonl'),[
+    {type:'session_meta',payload:{id:'s',cwd:first}},{type:'turn_context',payload:{turn_id:'t',cwd:first}},
+    call('direct',{cmd:'Get-Content '+operand}),
+    {type:'response_item',timestamp:'2026-10-30T01:00:01Z',payload:{type:'custom_tool_call',name:'exec',call_id:'nested',
+      input:'await tools.exec_command('+JSON.stringify({cmd:'Get-Content '+operand,workdir:second})+');'}},
+    {type:'response_item',timestamp:'2026-10-30T01:00:02Z',payload:{type:'custom_tool_call',name:'exec',call_id:'dynamic',
+      input:'await tools.exec_command({cmd:'+JSON.stringify('Get-Content '+operand)+',workdir:unknownDirectory});'}},
+    {type:'turn_context',payload:{turn_id:'t2',cwd:null}},call('no-cwd',{cmd:'Get-Content '+operand}),
+  ].map(value=>JSON.stringify(value)).join('\n'));
+  const report=createSkillReport(await collectSkillLogEvidence(dir,mapping),{countPolicy:'resolved'});
+  assert.equal(report.totals.uniqueTotal,2);assert.equal(report.deduplication.unresolvedEvidence.length,2);
+  assert.equal(resolveLoggedSkillPath(operand,undefined,null),operand);
+  assert.equal(resolveLoggedSkillPath('D:skills/demo/SKILL.md',undefined,'C:/project'),'D:skills/demo/SKILL.md');
+  assert.equal(resolveLoggedSkillPath('.agents/skills/demo/SKILL.md','C:/override','D:/default'),'C:\\override\\.agents\\skills\\demo\\SKILL.md');
 });
 test('conflicts quarantine all candidates independent of order and remain quarantined on reimport',async()=>{
   const p=await sample();

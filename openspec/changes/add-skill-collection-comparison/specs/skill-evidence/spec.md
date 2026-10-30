@@ -8,7 +8,7 @@
 
 ### Requirement: 可重算的结构化证据报告
 
-系统 SHALL 定义 kind=skill-usage-comparison、schemaVersion=1 的独立契约，包含 mode、countUnit=skill-turn、sourceInstanceId、timeZone、period、generatedAt、deduplication、evidence、skills 和 totals。系统 MUST 从证据重新计算并核对派生汇总，不把提交的汇总当作去重依据。
+系统 SHALL 定义 kind=skill-usage-comparison、schemaVersion=1 的独立契约，包含 mode、countUnit=skill-turn、sourceInstanceId、timeZone、period、generatedAt、deduplication、evidence、skills 和 totals，并支持可选 countPolicy=resolved|strict。旧包省略该字段时 MUST 按 strict 校验；日常本机查询默认 resolved，重放已声明策略的报告时尊重声明，允许用户明确切换。系统 MUST 按声明策略从证据重新计算并核对派生汇总，不把提交的汇总当作去重依据。
 
 #### Scenario: 汇总与证据不一致
 - **WHEN** 导入的 skills 或 totals 与同批证据按指定规则计算出的结果不同
@@ -71,16 +71,26 @@
 
 ### Requirement: 未决身份与未知汇总
 
-系统 SHALL 保留 deduplication.ruleVersion、keyFields 与 unresolvedEvidence，后者包含原候选、原因和影响范围。不能可靠确定的分项或 uniqueTotal MUST 为 null；受影响总计对应字段也为 null，已确认不受影响的分项继续提供。系统 MUST 不把未决记录丢弃后仍输出看似完整的总数。
+系统 SHALL 保留 deduplication.ruleVersion、keyFields 与 unresolvedEvidence，后者包含原候选、原因和影响范围。strict 策略下不能可靠确定的分项或 uniqueTotal MUST 为 null；受影响总计对应字段也为 null，已确认不受影响的分项继续提供。resolved 策略 SHALL 只对身份完整的被接受证据归组，并在 JSON 声明策略、表格标注计数依据、单列当前范围的未决候选；不得把该视图称为包括未决记录的完整总数。系统 MUST 不丢弃未决明细。
 
 #### Scenario: 无法判断是否重复
-- **WHEN** 新证据缺少 turnId，可能属于已有组也可能属于新组
+- **WHEN** strict 策略下新证据缺少 turnId，可能属于已有组也可能属于新组
 - **THEN** 不自动合并或增加一个新组，受影响的 uniqueTotal 为 null
 - **AND** 修复身份后可按同一原始证据重新计算
 
+#### Scenario: 日常统计显示已解析证据并保留未决
+- **WHEN** 完整身份的日志证据形成 3 个技能轮次，另有 1 条缺技能身份的候选
+- **THEN** 默认 resolved 策略显示 3，并在页脚提示未决候选 1；JSON 保留候选且声明 countPolicy=resolved
+- **AND** 用户切换 strict 时受影响完整计数为 null，两个策略的报告均能按原声明重算核对
+
+#### Scenario: 相对路径有原始工作目录
+- **WHEN** 日志的技能读取操作数是相对路径，原始 session/turn cwd 或该工具静态 workdir 可验证
+- **THEN** 系统按原始目录解析绝对路径并查显式映射，工具 workdir 优先，不执行命令
+- **AND** 动态目录、缺少目录和驱动器相对路径不使用查询进程的目录补齐
+
 #### Scenario: 严格计数未知的展示与明确映射修复
 - **WHEN** 所选来源和时间范围内有未决候选，或本地原生 Hook 包缺 skillKey 但存在采集器 v1 留存的路径摘要
-- **THEN** 主表保留未知计数，并在页脚说明已解析证据组数、未决候选数及缺失字段，不把已解析组数当成完整总数
+- **THEN** strict 视图保留未知计数并说明已解析证据组数，resolved 视图显示已解析统计；两者均提示未决候选及缺失字段，不冒充包含未决的完整总数
 - **AND** 仅同实例、本采集器原生包的路径摘要与显式配置路径唯一匹配时修复查询投影，不修改原始包；歧义、其他 producer 和缺其他必要身份继续待核对
 - **AND** 未选来源和窗口外未决项不触发提示，显式证据包重放不依赖个人映射
 

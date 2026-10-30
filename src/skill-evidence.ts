@@ -1,6 +1,6 @@
 import { parseMcpTimestamp } from './mcp-aggregate.js';
 import type { SkillCounts, SkillEvidence, SkillEvidencePackage, SkillComparisonReport,
-  SkillComparisonRow, SkillGroup, SkillMode, UnresolvedSkillEvidence } from './skill-evidence-types.js';
+  SkillComparisonRow, SkillGroup, SkillMode, SkillCountPolicy, UnresolvedSkillEvidence } from './skill-evidence-types.js';
 
 export const SKILL_KEYS = ['sourceInstanceId', 'sessionId', 'turnId', 'skillKey'];
 export const MAX_SKILL_EVIDENCE = 10_000;
@@ -69,10 +69,11 @@ function validateCounts(value: unknown, extra: string[], at: string) {
 }
 function validatePackage(value: unknown): SkillEvidencePackage {
   if (!object(value)) fail('package');
-  fields(value, ['schemaVersion','kind','mode','countUnit','sourceInstanceId','timeZone','period','generatedAt',
+  fields(value, ['schemaVersion','kind','mode','countUnit','countPolicy','sourceInstanceId','timeZone','period','generatedAt',
     'producer','deduplication','evidence','skills','totals','comparison'], 'package');
   if (value.schemaVersion !== 1 || value.kind !== 'skill-usage-comparison' || value.countUnit !== 'skill-turn' ||
     !['logs','hooks','combined'].includes(value.mode as string) || !id(value.sourceInstanceId)) fail('header');
+  if(value.countPolicy!==undefined&&!['resolved','strict'].includes(value.countPolicy as string))fail('countPolicy');
   if (typeof value.timeZone !== 'string') fail('timeZone');
   try { new Intl.DateTimeFormat('en', { timeZone: value.timeZone }).format(); } catch { fail('timeZone'); }
   if (!timestamp(value.generatedAt)) fail('generatedAt');
@@ -128,7 +129,7 @@ export function skillEvidenceInView(e:SkillEvidence,p:Pick<SkillEvidencePackage,
     (Date.parse(e.occurredAt)>=Date.parse(p.period.start)&&Date.parse(e.occurredAt)<Date.parse(p.period.end!)));
 }
 export function createSkillReport(input: SkillEvidencePackage, options: {
-  mode?: SkillMode; period?: SkillEvidencePackage['period']; generatedAt?: string; timeZone?: string
+  mode?: SkillMode; period?: SkillEvidencePackage['period']; generatedAt?: string; timeZone?: string;countPolicy?:SkillCountPolicy
 } = {}): SkillComparisonReport {
   const p = validatePackage({ ...input, ...options, skills: undefined, totals: undefined });
   const byIdentity = new Map<string, SkillEvidence[]>();
@@ -171,7 +172,7 @@ export function createSkillReport(input: SkillEvidencePackage, options: {
     if (!rows.has(key)) rows.set(key,{ skillKey:key,skill:key.split(':').at(-1)!,...counts(),lastRecorded:null });
     return rows.get(key)!;
   };
-  for (const e of [...relevant,...relevantPending.flatMap(u => u.evidence.filter(selected))]) {
+  for (const e of [...relevant,...(p.countPolicy==='resolved'?[]:relevantPending.flatMap(u => u.evidence.filter(selected)))]) {
     if (!e.skillKey) continue;
     const r=row(e.skillKey);
     if (e.occurredAt && (!r.lastRecorded || Date.parse(e.occurredAt)>Date.parse(r.lastRecorded))) r.lastRecorded=e.occurredAt;
@@ -196,6 +197,7 @@ export function createSkillReport(input: SkillEvidencePackage, options: {
   let unknownGlobal=false;
   const globalImpact=new Set<string>();
   for (const u of relevantPending) {
+    if(p.countPolicy==='resolved')continue;
     const ms=u.affectedMethods.filter(m=>p.mode==='combined'||m===p.mode);
     if(!ms.length) continue;
     const affected=u.affectedSkillKeys===null ? [...rows.keys()] : u.affectedSkillKeys;

@@ -34,7 +34,7 @@ test('incompatible flags fail before evidence is read or output written',async t
   const r=run(['--skill-method','logs',flag,'--skill-evidence',join(dir,'missing'),'--json','--output',out]);
   assert.notEqual(r.status,0);assert.equal(r.stdout,'');assert.match(r.stderr,/cannot combine/);
  }
- for(const args of [['--skill-method','bad'],['--skill-evidence',sample]]){
+ for(const args of [['--skill-method','bad'],['--skill-evidence',sample],['--skill-method','logs','--skill-counts','bad'],['--skill-counts','resolved']]){
   const r=run(args);assert.notEqual(r.status,0);assert.equal(r.stdout,'');
  }
 });
