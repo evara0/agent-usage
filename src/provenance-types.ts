@@ -56,3 +56,26 @@ export interface ProvenanceMappingEntry {
   localState?: LocalDeclaration;
 }
 export interface ProvenanceMapping { version: 1; entries: ProvenanceMappingEntry[] }
+
+export type MappedPathStatus = 'present' | 'missing' | 'unreadable' | 'skipped_link' | 'unsupported';
+export interface MappedProvenancePath {
+  pathId: string;
+  status: MappedPathStatus;
+  metadata: SkillInstallation | null;
+}
+export interface MappedSkillProvenance {
+  skillKey: string;
+  names: string[];
+  status: 'present' | 'missing' | 'unmapped' | 'unresolved' | 'ambiguous';
+  paths: MappedProvenancePath[];
+  declarations: ProvenanceFields;
+}
+export interface SkillProvenanceInventory {
+  schemaVersion: 2;
+  kind: 'skill-provenance-inventory';
+  observedAt: string;
+  temporalScope: 'current_reference_only';
+  sourceInstanceId: string;
+  skills: MappedSkillProvenance[];
+  diagnostics: ProvenanceDiagnostics;
+}
