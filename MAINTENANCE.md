@@ -80,6 +80,8 @@ openspec validate --archived --strict --no-interactive
 
 --skill-method 为可选新模式，旧默认与 --hooks 处理器统计不变。Schema 随包发布在 schemas/；采集命令为 dist/skill-hook-entry.mjs。
 
+Markdown 使用同一新 SkillComparisonReport：运行 `node dist/index.mjs --skill-method combined --days 30 --markdown --output .local/skill-usage.md`。旧裸 --markdown、旧 --strict 或 provenance Markdown 会提示迁移，不再调用旧采集/聚合；详见 docs/markdown-report.md。limit 不截断报告。
+
 保留 usage-skills 中的 config.json、证据包及未决项；不要通过修改原始日志修正汇总。只读重放见 docs/skill-comparison.md。2026-10-30 本机正常信任后，真实 PreToolUse / Bash 已生成证据包；两次同轮读取与日志精确归组后得到 0/1/1/1，重复导入不增计。该结论限于实测路径，不代表完整覆盖。
 
 用户级 Hook 配置在 Codex home 的 hooks.json；停止或启用使用 /hooks，修改定义后须正常重新信任。当前安装使用固定工具目录，不依赖 worktree 的 dist。可选诊断入口仅保留 usage-skills/diagnostics/latest.json，记录阶段和字段形状，不参与统计。PowerShell 启动问题、回退和验收证据见 [Skill Hook 验证](docs/skill-hook-validation.md)。新增技能或插件版本后须显式更新技能映射，否则进入未决，不能直接当作零使用。

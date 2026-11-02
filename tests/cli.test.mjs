@@ -93,48 +93,8 @@ test('missing Codex home returns empty JSON', async t => {
   assert.equal(result.filesScanned, 1);
 });
 
-test('Markdown CLI emits a complete report with window and strict context', async t => {
-  const root = await fixture(t);
-  const output = run(['--codex-dir', root, '--markdown', '--days', '30', '--limit', '1']);
-  assert.ok(output.startsWith('# Codex Skill 使用报告\n'));
-  assert.match(output, /\| Skill 数 \| 3 \|/);
-  assert.match(output, /\| \d+ \| explicit \|/);
-  assert.match(output, /\| \d+ \| sample \|/);
-  assert.match(output, /\| \d+ \| second \|/);
-  assert.match(output, /最近 30 天/);
-  assert.match(output, /strict：false/);
-  assert.doesNotMatch(output, /more skills/);
-  const strict = run(['--codex-dir', root, '--markdown', '--strict']);
-  assert.match(strict, /\| Skill 数 \| 1 \|/);
-  assert.match(strict, /strict：true/);
-  assert.doesNotMatch(strict, /\| \d+ \| sample \|/);
-});
-
-test('Markdown CLI handles missing data without a banner', async t => {
-  const root = await fixture(t);
-  const output = run(['--codex-dir', join(root, 'missing'), '--markdown']);
-  assert.ok(output.startsWith('# Codex Skill 使用报告\n'));
-  assert.match(output, /没有可用的 Skill 使用记录/);
-  assert.match(output, /统计窗口：全部历史/);
-});
-
 test('conflicting output modes are rejected before scanning', () => {
   run(['--markdown', '--json'], false);
-});
-
-test('direct Markdown file output preserves UTF-8 Chinese and overwrites without shell decoding', async t => {
-  const root = await fixture(t);
-  const outputPath = join(root, '中文 reports', '使用报告.md');
-  assert.equal(run(['--codex-dir', root, '--markdown', '--output', outputPath]), '');
-  const bytes = await readFile(outputPath);
-  assert.notDeepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
-  assert.ok(bytes.toString('utf8').startsWith('# Codex Skill 使用报告\n'));
-  assert.match(bytes.toString('utf8'), /统计上下文/);
-  assert.ok(bytes.toString('utf8').endsWith('\n'));
-  await writeFile(outputPath, 'obsolete content');
-  assert.equal(run(['--codex-dir', root, '--markdown', '--strict', '--output', outputPath]), '');
-  assert.match(await readFile(outputPath, 'utf8'), /strict：true/);
-  assert.doesNotMatch(await readFile(outputPath, 'utf8'), /obsolete content/);
 });
 
 test('direct JSON output remains parseable and write errors fail with empty stdout', async t => {
@@ -143,7 +103,7 @@ test('direct JSON output remains parseable and write errors fail with empty stdo
   assert.equal(run(['--codex-dir', root, '--json', '--output', outputPath]), '');
   const report = JSON.parse(await readFile(outputPath, 'utf8'));
   assert.equal(report.totals.invocations, 3);
-  run(['--codex-dir', root, '--markdown', '--output', root], false);
+  run(['--codex-dir', root, '--json', '--output', root], false);
 });
 
 for (const args of [['--output', 'unused.md'], ['--output'], ['--json', '--output=']]) {

@@ -34,7 +34,7 @@ node ./dist/index.mjs hooks install
 | 两来源合并去重 | `node ./dist/index.mjs --skill-method combined --days 30 --limit 0` |
 | MCP 调用 | `node ./dist/index.mjs --mcp --days 30` |
 | 旧版 Skill 统计 | `node ./dist/index.mjs --days 30` |
-| Skill 当前来源 | `node ./dist/index.mjs --provenance` |
+| 全部本机技能出处 | `node ./dist/index.mjs --provenance` |
 | 离线 Hook 处理器统计 | `node ./dist/index.mjs --hooks --days 30` |
 
 双来源表格固定显示 **Skill、Logs Explicit、Logs Inferred、Hooks、Unique Total、Last Recorded**。按同实例、会话、轮次、技能去重；同轮同技能计一次，`Unique Total` 是选中来源的并集。
@@ -54,7 +54,10 @@ node ./dist/index.mjs hooks install
 
 ```powershell
 node ./dist/index.mjs --skill-method combined --days 30 --json --output .local/skill-stats.json
+node ./dist/index.mjs --skill-method combined --days 30 --markdown --output .local/skill-stats.md
 ```
+
+出处查询遍历本机映射中的全部技能，核对当前文件与元数据，不读取使用日志，也不接受 `--days`。Markdown 使用新统计口径，必须指定 `--skill-method`，不再支持旧裸 `--markdown`。
 
 `--strict` 是旧版 Skill 的“排除推断”选项，与 `--skill-counts strict` 不同。`--hooks` 读取离线处理器通知，`--skill-method hooks` 读取技能采集证据。详细参数及组合限制见帮助和下列文档。
 
@@ -74,6 +77,6 @@ node ./dist/index.mjs --skill-method combined --days 30 --json --output .local/s
 | [离线 Hook 统计](docs/hooks-statistics.md) | 处理器通知导入协议 |
 | [Skill 来源资料](docs/skill-provenance.md) | 元数据与来源候选 |
 | [公共契约](docs/usage-contract.md) | JSON 与源码接口 |
-| [Markdown 报告](docs/markdown-report.md) | 旧版 Skill 报告导出 |
+| [Markdown 报告](docs/markdown-report.md) | 新 Skill 统计报告导出 |
 | [维护卡](MAINTENANCE.md) | 更新、检查与恢复 |
 | [验收归档](openspec/changes/archive/2026-11-02-add-skill-collection-comparison/implementation-verification.md) | 实施和验证记录 |
