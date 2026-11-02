@@ -82,8 +82,8 @@ test('native config and sessions without imported evidence yield empty explanato
   assert.equal(report.scan.missingDirectories, 1);
   assert.equal(report.coverage.availability, 'no-imports');
   assert.match(run(['--hooks', '--codex-dir', root]).stdout, /not proof that no Hooks ran/);
-  const skill = JSON.parse(run(['--json', '--codex-dir', root]).stdout);
-  assert.ok(skill.skills.some(s => s.skill === 'existing-skill'));
+  const skill = run(['--json', '--codex-dir', root], false);
+  assert.match(skill.stderr, /config.missing.*setup/);
   const mcp = JSON.parse(run(['--mcp', '--json', '--codex-dir', root]).stdout);
   assert.equal(mcp.kind, 'mcp');
   assert.equal(mcp.totals.invocations, 0);

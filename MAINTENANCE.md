@@ -21,7 +21,7 @@ TypeScript / Node ESM CLI，pnpm 管理依赖，tsdown 构建，node:test 测试
 | `src/adapters/` | 日志采集、静态读取解析 |
 | `src/*aggregate.ts` | 各模式聚合 |
 | `src/render/` | 表格与 Markdown |
-| `src/contracts.ts`、`src/*types.ts`、`src/report.ts` | 契约、类型与报告组装 |
+| `src/contracts.ts`、`src/*types.ts` | 契约、类型与报告组装 |
 | `src/provenance.ts` | 当前来源资料 |
 | `tests/` | 模块及 CLI 回归 |
 
@@ -80,7 +80,7 @@ openspec validate --archived --strict --no-interactive
 
 --skill-method 为可选新模式，旧默认与 --hooks 处理器统计不变。Schema 随包发布在 schemas/；采集命令为 dist/skill-hook-entry.mjs。
 
-Markdown 使用同一新 SkillComparisonReport：运行 `node dist/index.mjs --skill-method combined --days 30 --markdown --output .local/skill-usage.md`。旧裸 --markdown、旧 --strict 或 provenance Markdown 会提示迁移，不再调用旧采集/聚合；详见 docs/markdown-report.md。limit 不截断报告。
+Markdown 使用同一新 SkillComparisonReport：运行 `node dist/index.mjs --skill-method combined --days 30 --markdown --output .local/skill-usage.md`。默认 combined，裸 --markdown 合法；旧 --strict 已移除，provenance Markdown 不支持；详见 docs/markdown-report.md。limit 不截断报告。
 
 保留 usage-skills 中的 config.json、证据包及未决项；不要通过修改原始日志修正汇总。只读重放见 docs/skill-comparison.md。2026-10-30 本机正常信任后，真实 PreToolUse / Bash 已生成证据包；两次同轮读取与日志精确归组后得到 0/1/1/1，重复导入不增计。该结论限于实测路径，不代表完整覆盖。
 

@@ -10,7 +10,7 @@
 pnpm install --frozen-lockfile
 pnpm run build
 node ./dist/index.mjs setup
-node ./dist/index.mjs --skill-method logs --days 30
+node ./dist/index.mjs --days 30
 ```
 
 `setup` 为当前使用者生成本机映射。新增技能或插件后运行 `node ./dist/index.mjs skills refresh`。项目内技能可用 `skills refresh --project-root E:/your-project` 纳入，目录设置会保留。
@@ -33,7 +33,7 @@ node ./dist/index.mjs hooks install
 | 最近 30 天 Hook | `node ./dist/index.mjs --skill-method hooks --days 30` |
 | 两来源合并去重 | `node ./dist/index.mjs --skill-method combined --days 30 --limit 0` |
 | MCP 调用 | `node ./dist/index.mjs --mcp --days 30` |
-| 旧版 Skill 统计 | `node ./dist/index.mjs --days 30` |
+| 默认合并统计 | `node ./dist/index.mjs --days 30` |
 | 全部本机技能出处 | `node ./dist/index.mjs --provenance` |
 | 离线 Hook 处理器统计 | `node ./dist/index.mjs --hooks --days 30` |
 
@@ -49,7 +49,7 @@ node ./dist/index.mjs hooks install
 | `--limit N` | 表格最多 N 行，默认 25；0 表示全部，不影响汇总或 JSON |
 | `--codex-dir PATH` | 指定 Codex 数据目录 |
 | `--json --output PATH` | 保存完整 UTF-8 JSON，会覆盖同名文件 |
-| `--skill-evidence PATH` | 配合 `--skill-method` 重放证据包 |
+| `--skill-evidence PATH` | 重放证据包，默认 combined |
 | `--help` | 查看完整参数 |
 
 ```powershell
@@ -57,9 +57,9 @@ node ./dist/index.mjs --skill-method combined --days 30 --json --output .local/s
 node ./dist/index.mjs --skill-method combined --days 30 --markdown --output .local/skill-stats.md
 ```
 
-出处查询遍历本机映射中的全部技能，核对当前文件与元数据，不读取使用日志，也不接受 `--days`。Markdown 使用新统计口径，必须指定 `--skill-method`，不再支持旧裸 `--markdown`。
+出处查询遍历本机映射中的全部技能，核对当前文件与元数据，不读取使用日志，也不接受 `--days`。Skill 查询默认 `combined`；表格、JSON 和 Markdown 均使用同一新口径。
 
-`--strict` 是旧版 Skill 的“排除推断”选项，与 `--skill-counts strict` 不同。`--hooks` 读取离线处理器通知，`--skill-method hooks` 读取技能采集证据。详细参数及组合限制见帮助和下列文档。
+旧 `--strict` 已移除；`--skill-counts strict` 控制未决证据的严格计数，不表示排除推断。`--hooks` 读取离线处理器通知，`--skill-method hooks` 读取技能采集证据。详细参数及组合限制见帮助和下列文档。
 
 ## 排障与文档
 

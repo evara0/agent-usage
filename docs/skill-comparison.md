@@ -1,6 +1,6 @@
 # Skill 双来源证据统计
 
-本功能通过显式 --skill-method 启用，原默认 Skill、MCP、--hooks 处理器统计和来源资料保持原行为。
+默认 Skill 查询使用 combined；--skill-method 可显式选择 logs、hooks 或 combined。MCP、--hooks 处理器统计和出处清单保持独立。旧 Skill 表格与 JSON 入口已移除。
 
 ## 重放样例
 

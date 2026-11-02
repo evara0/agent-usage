@@ -34,7 +34,7 @@ test('incompatible flags fail before evidence is read or output written',async t
   const r=run(['--skill-method','logs',flag,'--skill-evidence',join(dir,'missing'),'--json','--output',out]);
   assert.notEqual(r.status,0);assert.equal(r.stdout,'');assert.match(r.stderr,/cannot combine/);
  }
- for(const args of [['--skill-method','bad'],['--skill-evidence',sample],['--skill-method','logs','--skill-counts','bad'],['--skill-counts','resolved']]){
+ for(const args of [['--skill-method','bad'],['--skill-method','logs','--skill-counts','bad']]){
   const r=run(args);assert.notEqual(r.status,0);assert.equal(r.stdout,'');
  }
 });
@@ -73,7 +73,7 @@ test('Hook command writes portable evidence atomically and fails open without ra
   {type:'response_item',timestamp:new Date().toISOString(),payload:{type:'function_call',name:'exec_command',call_id:'c',
     arguments:JSON.stringify({cmd:input.tool_input.command})}}
  ].map(JSON.stringify).join('\n'));
- const combined=run(['--skill-method','combined','--codex-dir',dir,'--json']);
+ const combined=run(['--codex-dir',dir,'--json']);
  assert.equal(combined.status,0,combined.stderr);
  const result=JSON.parse(combined.stdout);
  assert.equal(result.totals.logsInferred,1);assert.equal(result.totals.hooks,1);assert.equal(result.totals.uniqueTotal,1);

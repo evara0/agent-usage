@@ -1,4 +1,4 @@
-import type { McpCallRecord, SkillUsageReport } from '../src/contracts.js';
+import type { McpCallRecord } from '../src/contracts.js';
 
 // 本文件由 pnpm run test 的 TypeScript 编译检查，不作为运行时测试执行。
 const identity = {
@@ -13,9 +13,9 @@ const successWithoutResult: McpCallRecord = { ...identity, status: 'succeeded', 
 // @ts-expect-error 调用身份必须包括会话，不能仅靠 callId。
 const missingSession: McpCallRecord = { source: 'codex', callId: 'call-1', server: null, tool: 'read', startedAt: identity.startedAt, status: 'unknown', finishedAt: null, durationMs: null };
 
-declare const report: SkillUsageReport;
-// @ts-expect-error 报告来源保持 Codex，不隐式扩展为其他 Agent。
-const otherSource: 'claude' = report.source;
+declare const report: import('../src/skill-evidence-types.js').SkillComparisonReport;
+// @ts-expect-error 新 Skill 报告必须由 kind 区分，不能当作旧协议。
+const otherSource: 'legacy-skill-usage' = report.kind;
 
 void unknownWithDuration;
 void successWithoutResult;

@@ -50,7 +50,7 @@ test('missing or invalid configuration produces guidance without mutation, disco
  const dir=await temp(t),home=join(dir,'home');
  const missing=run(['--skill-method','logs','--codex-dir',home]);assert.notEqual(missing.status,0);assert.match(missing.stderr,/agent-usage setup/);
  const refresh=run(['skills','refresh','--codex-dir',home]);assert.notEqual(refresh.status,0);assert.match(refresh.stderr,/setup/);
- for(const args of [['setup','--codex-dir',''],['setup','--unknown'],['hooks','install','--project-root',dir],['--skill-counts','resolved']])assert.notEqual(run(args).status,0);
+ for(const args of [['setup','--codex-dir',''],['setup','--unknown'],['hooks','install','--project-root',dir]])assert.notEqual(run(args).status,0);
  await mkdir(join(home,'usage-skills'),{recursive:true});const config=join(home,'usage-skills','config.json');
  await writeFile(config,'{"secret":"do-not-echo"}');const invalid=run(['setup','--codex-dir',home]);
  assert.notEqual(invalid.status,0);assert(!invalid.stderr.includes('do-not-echo'));assert.equal(await readFile(config,'utf8'),'{"secret":"do-not-echo"}');

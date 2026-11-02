@@ -1,47 +1,5 @@
-import type { SkillProvenanceReport } from './provenance-types.js';
-
-/** 首个公共报告版本；不兼容的字段或口径变更必须提升版本。 */
+/** MCP JSON version; Skill reports use their independent comparison contract. */
 export const USAGE_SCHEMA_VERSION = 1 as const;
-
-export interface SkillStats {
-  skill: string;
-  total: number;
-  manual: number;
-  auto: number;
-  /** auto 中由静态 SKILL.md 读取推断的子集，不代表成功执行。 */
-  inferredAuto: number;
-  lastUsedAt: string | null;
-  sources: Record<string, number>;
-  /** 运行机器本地日期 YYYY-MM-DD。 */
-  daily: Record<string, number>;
-  projects: Record<string, number>;
-  aliases: string[];
-}
-
-export interface AggregateResult {
-  skills: SkillStats[];
-  totals: { invocations: number; manual: number; auto: number; skills: number };
-}
-
-export interface ReportContext {
-  /** 调用方提供的 ISO 8601 生成时间。 */
-  generatedAt: string;
-  /** 滚动 N×24 小时；null 表示全部历史。 */
-  windowDays: number | null;
-  strict: boolean;
-  /** daily 分桶使用的运行机器本地 IANA 时区。 */
-  timeZone: string;
-  /** 既有候选 rollout 数加 history 路径，不是成功读取数。 */
-  filesScanned: number;
-  elapsedMs: number;
-}
-
-export interface SkillUsageReport extends ReportContext, AggregateResult {
-  schemaVersion: typeof USAGE_SCHEMA_VERSION;
-  source: 'codex';
-  /** Opt-in current references, never historical authorship attribution. */
-  provenance?: SkillProvenanceReport;
-}
 
 interface McpCallIdentity {
   source: 'codex';

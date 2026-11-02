@@ -20,7 +20,7 @@ node ./dist/index.mjs --skill-method hooks --skill-counts strict --markdown
 
 ## 旧命令迁移
 
-旧 `--days 30 --markdown` 不再生成旧口径报告，会在扫描前提示增加 `--skill-method logs|hooks|combined`。旧 `--strict` 是排除推断，不等于新严格未知策略；新命令使用 `--skill-counts strict`。`--provenance --markdown` 不再支持，出处信息与新统计报告分开查询。旧非 Markdown 表格和 JSON 暂时保留。
+`--days 30 --markdown` 默认生成 combined 新口径报告，`--skill-method` 可省略。旧 `--strict` 是排除推断，不等于新严格未知策略；新命令使用 `--skill-counts strict`。`--provenance --markdown` 不再支持，出处信息与新统计报告分开查询。旧表格、JSON 及源码接口已移除。
 
 `--json` 与 `--markdown` 互斥，新 Markdown 也不能和 `--mcp`、`--hooks`、`--provenance` 或旧 `--strict` 混用；错误在读取输入及写文件前拒绝。
 

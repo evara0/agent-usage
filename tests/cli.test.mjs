@@ -17,93 +17,47 @@ function run(args, ok = true) {
   return result.stdout;
 }
 
-async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), 'agent-usage-cli-'));
-  t.after(async () => {
-    assert.equal(dirname(root), resolve(tmpdir()));
-    assert.match(basename(root), /^agent-usage-cli-/);
-    await rm(root, { recursive: true, force: true });
-  });
-  await mkdir(join(root, 'sessions'));
-  const timestamp = new Date().toISOString();
-  const read = skill => ({ type: 'response_item', timestamp, payload: {
-    type: 'custom_tool_call', name: 'exec',
-    input: `text(await tools.exec_command({cmd: ${JSON.stringify(`Get-Content 'C:/demo/skills/.system/${skill}/SKILL.md'`)}}));`,
-  }});
-  const manual = { type: 'event_msg', timestamp, payload: { type: 'user_message', message: '$explicit' }};
-  await writeFile(join(root, 'sessions', 'test.jsonl'), [
-    { type: 'session_meta', payload: { id: 'synthetic-cli', cwd: 'C:/demo' } },
-    read('sample'), read('second'), manual, read('explicit'),
-  ].map(JSON.stringify).join('\n'));
-  return root;
-}
-
-for (const strict of [false, true]) {
-  test(`JSON contract, strict=${strict}`, async t => {
-    const root = await fixture(t);
-    const result = JSON.parse(run(['--codex-dir', root, '--json', ...(strict ? ['--strict'] : [])]));
-    assert.equal(result.source, 'codex');
-    assert.equal(result.schemaVersion, 1);
-    assert.equal(result.strict, strict);
-    assert.equal(result.timeZone, Intl.DateTimeFormat().resolvedOptions().timeZone);
-    assert.equal(result.windowDays, null);
-    assert.equal(result.totals.invocations, strict ? 1 : 3);
-    assert.equal(result.totals.manual, 1);
-    assert.ok(result.elapsedMs >= 0);
-    assert.deepEqual(Object.keys(result).sort(), [
-      'schemaVersion', 'generatedAt', 'source', 'windowDays', 'filesScanned',
-      'elapsedMs', 'totals', 'skills', 'strict', 'timeZone',
-    ].sort());
-    assert.deepEqual(result.totals, {
-      invocations: strict ? 1 : 3, manual: 1, auto: strict ? 0 : 2, skills: strict ? 1 : 3,
-    });
-    for (const skill of result.skills) {
-      assert.ok(Object.keys(skill.daily).length);
-      assert.equal(skill.projects['C:/demo'], 1);
-      assert.deepEqual(skill.aliases, [skill.skill]);
-      assert.equal(skill.total, skill.manual + skill.auto);
-      assert.deepEqual(Object.keys(skill).sort(), [
-        'skill', 'total', 'manual', 'auto', 'inferredAuto', 'lastUsedAt',
-        'sources', 'daily', 'projects', 'aliases',
-      ].sort());
-      if (strict) assert.equal(skill.inferredAuto, 0);
-    }
+const sample='docs/examples/skill-comparison-combined.json';
+for (const format of ['--json', '--markdown', 'table']) {
+  test(`default combined matches explicit combined: ${format}`, () => {
+    const base=['--skill-evidence',sample,...(format==='table'?[]:[format])];
+    const implicit=run(base), explicit=run(['--skill-method','combined',...base]);
+    if(format==='--json') {
+      const a=JSON.parse(implicit), b=JSON.parse(explicit);
+      delete a.generatedAt; delete b.generatedAt;
+      assert.deepEqual(a,b);
+      assert.equal(a.kind,'skill-usage-comparison');
+      assert.equal(a.schemaVersion,1);
+      assert.equal(a.totals.uniqueTotal,6);
+      for(const key of ['strict','windowDays','filesScanned','elapsedMs','source']) assert(!(key in a));
+    } else assert.equal(implicit.replace(/^- Generated At .*$/m,''),explicit.replace(/^- Generated At .*$/m,''));
   });
 }
-
-test('table evidence, totals and row limit; JSON stays complete', async t => {
-  const root = await fixture(t);
-  const output = run(['--codex-dir', root, '-l', '1']);
-  assert.match(output, /Explicit/);
-  assert.match(output, /Inferred/);
-  assert.match(output, /Last recorded/);
-  assert.match(output, /3 records · 1 explicit \/ 2 inferred/);
-  assert.match(output, /2 more skills/);
-  assert.doesNotMatch(output, /Manual|Trend/);
-  const json = JSON.parse(run(['--codex-dir', root, '--json', '-l', '1', '-d', '30']));
-  assert.equal(json.skills.length, 3);
-  assert.equal(json.windowDays, 30);
-  assert.doesNotMatch(run(['--codex-dir', root, '-l', '0']), /more skills/);
+test('default strict counts and row limit use new report',()=>{
+ const r=JSON.parse(run(['--skill-evidence',sample,'--skill-counts','strict','--json','--limit','1']));
+ assert.equal(r.countPolicy,'strict'); assert.equal(r.totals.uniqueTotal,6);assert.equal(r.skills.length,1);
+ assert.match(run(['--skill-evidence',sample]),/Logs Explicit/);
 });
-
-test('missing Codex home returns empty JSON', async t => {
-  const root = await fixture(t);
-  const result = JSON.parse(run(['--codex-dir', join(root, 'missing'), '--json']));
-  assert.equal(result.totals.invocations, 0);
-  assert.equal(result.filesScanned, 1);
+test('missing setup fails with actionable diagnostic',()=>{
+ const r=spawnSync(process.execPath,['dist/index.mjs','--codex-dir',join(tmpdir(),'agent-usage-no-such-home'),'--json'],{encoding:'utf8'});
+ assert.notEqual(r.status,0);assert.equal(r.stdout,'');assert.match(r.stderr,/config.missing.*setup/);
 });
-
 test('conflicting output modes are rejected before scanning', () => {
   run(['--markdown', '--json'], false);
 });
 
-test('direct JSON output remains parseable and write errors fail with empty stdout', async t => {
-  const root = await fixture(t);
-  const outputPath = join(root, 'nested', 'report.json');
-  assert.equal(run(['--codex-dir', root, '--json', '--output', outputPath]), '');
-  const report = JSON.parse(await readFile(outputPath, 'utf8'));
-  assert.equal(report.totals.invocations, 3);
-  run(['--codex-dir', root, '--json', '--output', root], false);
+test('default JSON export is complete and BOM-free',async t=>{
+ const root=await mkdtemp(join(tmpdir(),'agent-usage-default-'));
+ t.after(()=>rm(root,{recursive:true,force:true}));
+ const out=join(root,'report.json');
+ assert.equal(run(['--skill-evidence',sample,'--json','--output',out]),'');
+ const bytes=await readFile(out);assert.notDeepEqual([...bytes.subarray(0,3)],[239,187,191]);
+ assert.equal(JSON.parse(bytes.toString('utf8')).totals.uniqueTotal,6);
+ run(['--skill-evidence',sample,'--json','--output',root],false);
+});
+test('removed strict explains migration before reading input',()=>{
+ const r=spawnSync(process.execPath,['dist/index.mjs','--strict','--codex-dir','missing'],{encoding:'utf8'});
+ assert.notEqual(r.status,0);assert.equal(r.stdout,'');assert.match(r.stderr,/removed.*--skill-counts strict/);
 });
 
 for (const args of [['--output', 'unused.md'], ['--output'], ['--json', '--output=']]) {
@@ -128,4 +82,10 @@ for (const args of [
   ['--limit', '-1'], ['--limit', '1.5'], ['--limit', 'Infinity'],
 ]) {
   test(`reject ${args.join(' ')}`, () => run([...args, '--json'], false));
+}
+
+for(const independent of ['--mcp','--hooks','--provenance']) {
+ for(const option of [['--skill-evidence',sample],['--skill-counts','resolved']]) {
+  test(`independent ${independent} rejects ${option[0]} before reads`,()=>run([independent,...option,'--codex-dir','missing','--json'],false));
+ }
 }

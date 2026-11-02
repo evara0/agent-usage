@@ -2,37 +2,17 @@
 
 ## 当前范围
 
-公共契约是源码级接口，未建立 npm 库导出。版本常量及 Skill/MCP 类型位于 `src/contracts.ts`，报告组装位于 `src/report.ts`；Hook 与来源类型分别见 `src/hooks-types.ts`、`src/provenance-types.ts`。
+公共契约是源码级接口，未建立 npm 库导出。MCP 类型位于 `src/contracts.ts`，Skill 类型和报告组装位于 `src/skill-evidence-types.ts`、`src/skill-evidence.ts`；Hook 与来源类型分别见 `src/hooks-types.ts`、`src/provenance-types.ts`。
 
 ## Skill 报告
 
-`createSkillUsageReport(result: AggregateResult, context: ReportContext): SkillUsageReport` 接收已有聚合及调用方提供的上下文，返回可 JSON 序列化的完整报告。函数不读取文件、时钟或时区，不重新聚合、过滤或应用 limit，也不修改输入。totals/skills 复用输入引用，消费方应按只读数据使用；需要修改时先复制。
+默认查询及 --skill-method logs|hooks|combined 均返回 SkillComparisonReport，kind=skill-usage-comparison、schemaVersion=1，省略 method 时为 combined。计数单位为 skill-turn，唯一身份为 sourceInstanceId/sessionId/turnId/skillKey。
 
-| 字段 | 口径 |
-| --- | --- |
-| schemaVersion | 当前为数字 1；不兼容的字段或语义变更必须提升版本 |
-| generatedAt | 调用方提供的 ISO 8601 生成时间 |
-| source | 固定为 codex |
-| windowDays | 滚动 N×24 小时；null 表示全部历史 |
-| strict | 本次聚合是否排除推断记录；调用方应传入实际使用的选项 |
-| timeZone | daily 分桶使用的运行机器本地 IANA 时区 |
-| filesScanned | 原有候选 rollout 数加 history 路径；即使 history 不存在也加 1 |
-| elapsedMs | 原有扫描与聚合耗时 |
-| totals / skills | 原有全部字段、类型和语义；不受表格 limit 影响 |
+skills 与 totals 使用 logsExplicit、logsInferred、hooks、uniqueTotal；每项含 skillKey、skill、lastRecorded。period 表示时间窗口，timeZone 解释展示时间；evidence、deduplication.unresolvedEvidence 与 comparison 保留重算和核对依据。完整契约见 [双来源统计](skill-comparison.md) 和 schemas/skill-evidence-v1.schema.json。
 
-`skills` 中每项字段如下；`totals` 包含 invocations、manual、auto 和 skills，分别为总记录数、手动数、自动数和 Skill 数。
+旧 SkillUsageReport、SkillStats、AggregateResult、createSkillUsageReport 及旧采集聚合接口已移除。旧 JSON 的 total/manual/auto/inferredAuto、daily/projects/aliases、windowDays/filesScanned/elapsedMs 不再输出，调用方必须按 kind 识别新报告，不能只检查 schemaVersion=1。新报告沿用独立已发布的 comparison v1，未将旧 JSON 静默改名为相同结构。旧统计按秒/会话去重，不能与新技能轮次数直接比较。
 
-| SkillStats 字段 | 含义 |
-| --- | --- |
-| skill / aliases | 归一化名称 / 保留记录的原始名称别名 |
-| total / manual / auto | 记录总数 / 手动数 / 自动数；total = manual + auto |
-| inferredAuto | auto 中静态读取推断的子集；明确数 = total − inferredAuto |
-| lastUsedAt | 最新保留记录的 ISO 时间，无记录为 null |
-| daily / projects / sources | 按本地日期、项目目录、数据来源划分的计数 |
-
-读取器应允许增加字段；不兼容的字段或统计口径变更必须提升 schemaVersion。`SkillStats`、`AggregateResult` 也可从 `src/aggregate.ts` 导入。
-
-timeZone 只解释原有本地日期口径，不重分桶。strict 和时间窗口由采集后的聚合过程兑现，组装函数不校验其真实性。Skill total 仍表示去重后的使用证据，不表示执行成功或任务质量。
+--strict 已移除并在读取前给出迁移提示；--skill-counts strict 是未决计数策略，不是旧排除推断选项。--skill-evidence 与 --skill-counts 可在默认 Skill 模式直接使用，MCP、离线 Hook、出处模式不能混用。
 
 ## 独立 Skill 出处清单
 
@@ -66,8 +46,6 @@ Skill 出处独立于用量；--provenance 不能与使用时间、strict、Mark
 
 修改契约时同步类型、采集/聚合、渲染及消费方测试。检查命令见[维护卡](../MAINTENANCE.md)；CLI 使用及专题文档见 [README](../README.md)。分支基线、集成过程和历史验证保存在[集成验收](../openspec/changes/archive/2026-10-21-integrate-provenance-and-hooks/verification.md)及其他变更归档中。
 
-## 独立 Skill 对比契约
+## 统一输出
 
-显式 --skill-method 使用 kind=skill-usage-comparison、schemaVersion=1，与本文件的旧 SkillUsageReport v1 分开。完整格式见 schemas/skill-evidence-v1.schema.json 与 docs/skill-comparison.md；技能轮次、实例身份、逐条证据及未决项均可重算。旧 source、total 与去重不改变。
-
-Markdown 渲染已迁移至该新模型：renderMarkdown 接收 SkillComparisonReport，CLI 使用 --skill-method ... --markdown。旧 SkillUsageReport 仍服务旧 JSON，但不再是 Markdown 输入；旧裸 --markdown 在读取前提示迁移。
+表格、JSON 与 Markdown 使用同一 SkillComparisonReport；--limit 只截断终端表格。renderMarkdown 接收该报告，不重新采集。缺少本机配置时提示 setup，不回退旧日志统计。MCP 的 schemaVersion=1 与 kind=mcp 保持不变。

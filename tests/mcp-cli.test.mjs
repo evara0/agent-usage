@@ -108,14 +108,11 @@ test('MCP all-history, missing data and scan errors stay distinguishable', async
   assert.equal(scanError.scan.missingDirectories, 0);
 });
 
-test('Skill JSON stays independent of MCP and legacy Markdown requires migration', async t => {
-  const root = await fixture(t);
-  const skill = JSON.parse(run(['--codex-dir', root, '--json']));
-  assert.equal(skill.totals.invocations, 1);
-  assert.equal(skill.skills[0].skill, 'only-skill');
-  assert.ok(!('kind' in skill));
+test('default Skill JSON is independent of MCP', () => {
+  const skill=JSON.parse(run(['--skill-evidence','docs/examples/skill-comparison-combined.json','--json']));
+  assert.equal(skill.kind,'skill-usage-comparison');assert.equal(skill.totals.uniqueTotal,6);
   assert.ok(!('tools' in skill));
-  run(['--codex-dir', root, '--markdown'], false);
+  assert.match(run(['--skill-evidence','docs/examples/skill-comparison-combined.json','--markdown']),/6 skill-turns/);
 });
 
 test('MCP JSON exports directly as UTF-8 without stdout', async t => {

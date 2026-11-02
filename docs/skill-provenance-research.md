@@ -1,3 +1,5 @@
+> 历史调研：本文旧 InvocationEvent 等接口已移除；当前实现见 skill-comparison.md 与 skill-provenance.md。
+
 # Skill 作者与来源分类可行性调研
 
 调研日期：2026-10-21（Asia/Shanghai）。状态：历史研究记录。

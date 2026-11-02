@@ -40,10 +40,10 @@ test('strict/resolved pending reports and window/mode selection match upstream e
 });
 test('legacy and conflicting Markdown commands fail before input reads or output writes',async t=>{
  const dir=await temp(t),out=join(dir,'never-created.md');
- for(const args of [['--markdown'],['--markdown','--strict'],['--provenance','--markdown'],
+ for(const args of [['--markdown','--strict'],['--provenance','--markdown'],
   ['--skill-method','logs','--markdown','--json'],['--skill-method','logs','--markdown','--strict']]){
   const r=run([...args,'--codex-dir',join(dir,'missing'),'--output',out]);assert.notEqual(r.status,0);assert.equal(r.stdout,'');assert(r.stderr.trim());
  }
- const legacy=run(['--markdown']);assert.match(legacy.stderr,/requires --skill-method/);
+
  await assert.rejects(access(out));
 });
