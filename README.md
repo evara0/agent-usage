@@ -80,3 +80,9 @@ node ./dist/index.mjs --skill-method combined --days 30 --markdown --output .loc
 | [Markdown 报告](docs/markdown-report.md) | 新 Skill 统计报告导出 |
 | [维护卡](MAINTENANCE.md) | 更新、检查与恢复 |
 | [验收归档](openspec/changes/archive/2026-11-02-add-skill-collection-comparison/implementation-verification.md) | 实施和验证记录 |
+
+## 来源与许可
+
+本项目以 MIT 许可发布，完整文本见 [LICENSE](LICENSE)；第三方来源与许可边界见 [NOTICE](NOTICE)。
+
+初始版本的 Codex 采集器、静态读取解析、归一化与聚合逻辑及部分回归测试迁移自 [skillusage](https://github.com/lovstudio/skillusage)（MIT，Copyright (c) Lovstudio.ai），不包含其 Claude Code 采集、daily/趋势和按项目分组功能。统计只在本机读取受支持的记录，不上传任何数据。
