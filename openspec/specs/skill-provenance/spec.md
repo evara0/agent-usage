@@ -7,37 +7,55 @@
 ## Requirements
 
 ### Requirement: Offline current provenance
-系统 SHALL 通过显式 --provenance 只读收集当前本地资料，默认不联网、不执行元数据、不修改安装。系统 SHALL 有界读取所选 skills 根和可选单一插件版本根，不跟随符号链接，不输出原始路径、仓库凭据或作者邮箱。
+系统 SHALL 通过 --provenance 读取所选 Codex home 的 usage-skills/config.json，列出全部映射技能并逐路径核实普通文件存在性，读取当前离线出处资料。查询 MUST 只读，不读取使用日志、不依赖旧统计结果，不跟随链接，不输出原始本机路径或凭据。
+#### Scenario: 未使用和历史路径
+- **WHEN** 映射包含从未使用、已删除或多个实际文件的技能
+- **THEN** 全部条目都出现在报告，存在性与多路径歧义明确区分，映射登记本身不证明安装
+#### Scenario: 不可用日志
+- **WHEN** sessions/history 不存在、损坏或不是可读日志
+- **THEN** 不影响出处清单，出处查询不打开这些路径
 #### Scenario: Missing metadata
-- **WHEN** 文件缺失、不可读、不支持或没有归属声明
-- **THEN** 对应字段保持 unknown，诊断计数可见，不从目录、名称或 .system 认证官方或原创
+- **WHEN** 映射文件缺失、不可读、不支持或没有归属声明
+- **THEN** 存在性单独表示，元数据字段保持 unknown，诊断可见，不从目录或 .system 认证官方或原创
 #### Scenario: Plugin publisher
-- **WHEN** 插件清单声明 author、license
-- **THEN** 只形成 E3 发行方和许可证声明，不推导 Skill 原作者或开源许可适用性
+- **WHEN** 相邻插件清单声明 author、license
+- **THEN** 只形成文件声明的发行方和许可证候选，不推导技能原作者或许可证适用性
 
 ### Requirement: Explicit user declarations
-系统 SHALL 接受 version=1 的显式 JSON 映射并进行整体运行时校验，未知键、类型、枚举、超限和重复 selector SHALL 拒绝。用户声明 SHALL 标记 U，与文件声明保留并列；不一致 SHALL 标记 conflict。
+系统 SHALL 接受 version=1 的显式出处声明并整体校验，拒绝未知键、类型、枚举、超限和重复 selector。声明 SHALL 仅按精确 skillKey 应用到本机映射条目；用户值标记 U，与文件值并列，不一致保留 conflict，不按别名合并技能。
 #### Scenario: Invalid mapping
-- **WHEN** 映射无效
-- **THEN** CLI 在扫描使用日志前非零退出，错误不回显输入正文或路径
+- **WHEN** 出处声明格式无效
+- **THEN** 在读取映射技能文件前非零退出，不回显正文或凭据，不写输出文件
 #### Scenario: Registered reference
-- **WHEN** registered 身份只有用户注册没有安装证据
-- **THEN** 显示其 user_registered 类型，不声称已经安装或历史使用该实例
+- **WHEN** 用户声明只有 registered 身份，没有本机技能映射登记或安装文件
+- **THEN** 未登记的身份不创建清单条目；已登记但无路径显示 unmapped，不能声称安装或使用过
 
 ### Requirement: Identity and historical boundary
-系统 SHALL 根据原始别名和完整插件命名空间产生当前候选关联，多候选或部分未解析别名 SHALL 明确为 ambiguous；系统 SHALL NOT 将当前安装作者无依据回填历史事件或按作者重算历史次数。
+系统 SHALL 按映射 skillKey 标识条目，按精确路径形成当前候选；多个存在路径 SHALL 明确 ambiguous。文件与用户声明保持来源和冲突，不将当前声明回填历史事件或认证官方身份。
+#### Scenario: 同名不同技能
+- **WHEN** 两个不同 skillKey 具有相同显示名称
+- **THEN** 保持两个清单条目，不通过短名合并
+#### Scenario: 多路径
+- **WHEN** 同一 skillKey 有两个不同的存在文件
+- **THEN** 分别保留候选及路径摘要，不静默选择一个
 #### Scenario: Same name or version ambiguity
-- **WHEN** 名称命中多个身份或聚合别名不能唯一确定同一身份
-- **THEN** 列出候选身份及未解析别名，不静默按短名称选择
+- **WHEN** 同名条目具有不同 skillKey，或同一身份有多个存在文件
+- **THEN** 不按短名合并，不静默选择某一版本或路径
 #### Scenario: Historical event
-- **WHEN** 历史使用记录与当前资料关联
-- **THEN** 报告标记 current_reference_only，关联最多为 candidate，原计数不变
+- **WHEN** 使用者查询当前出处
+- **THEN** 报告标记 current_reference_only，不读取历史事件，也不据当前声明重算历史次数
 
 ### Requirement: Optional report compatibility
-系统 SHALL 仅在启用时为 Skill JSON 增补独立 provenance 字段并在表格和 Markdown 展示；现有 source=codex、schemaVersion、计数、去重、默认 JSON/MCP/Markdown 与直接 UTF-8 导出行为 SHALL 保持兼容。
+--provenance SHALL 输出独立 schemaVersion=2、kind=skill-provenance-inventory 报告，包含全部映射条目、当前观察时间和诊断。表格 limit 仅限制展示，JSON 导出完整。
+#### Scenario: 无关参数
+- **WHEN** --provenance 与 --days、--strict、--markdown、--skill-method、MCP 或 Hook 用量模式混用
+- **THEN** 读取文件前拒绝，并说明出处不依赖使用记录；旧扫描根参数提示改用 skills refresh 配置发现范围
+#### Scenario: 原有统计
+- **WHEN** 用户不指定 --provenance
+- **THEN** 此变更不改变旧默认统计、新 Skill 对比、MCP 或 Hook 统计
 #### Scenario: Complete export
-- **WHEN** --provenance 与 JSON/Markdown 或 --output 合用
-- **THEN** 来源资料完整输出、不受表格 limit 截断、UTF-8 正确，且说明声明证据和历史限制
+- **WHEN** --provenance 与 --json --output 合用
+- **THEN** 输出完整独立清单，不受表格 limit 截断，UTF-8 正确并标明声明不是核验
 #### Scenario: Invalid option combination
-- **WHEN** provenance 输入缺少 --provenance 或与 --mcp 组合
-- **THEN** 扫描日志前拒绝，默认模式不扫描元数据
+- **WHEN** 出处声明映射未配 --provenance，或出处与使用统计及旧扫描根参数混用
+- **THEN** 在读取配置与元数据前拒绝，默认模式不扫描元数据
