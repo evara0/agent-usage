@@ -1,148 +1,79 @@
 # agent-usage
 
-本地 Codex 使用证据统计 CLI：查看 Skill 频次、MCP 调用，以及离线导入的 Hook 结果和耗时。统计在本机完成，不执行日志中的代码，无需 API Key、数据库或常驻服务。
-
-> Skill 记录不代表执行成功或任务质量；MCP、Hook 仅在有明确结果证据时判定成功或失败。
+在本机统计 Codex 的 Skill、MCP 和 Hook 使用证据，无需 API Key、数据库或常驻服务。Skill 记录表示指定、注入或文件读取信号，不代表执行成功。
 
 ## 快速开始
 
-2026-11-02 已验收日志/Hook 双来源统计、逐轮去重及每个使用者独立初始化流程。变更与验证记录见 [归档](openspec/changes/archive/2026-11-02-add-skill-collection-comparison/implementation-verification.md)，当前规则见 [Skill 证据规范](openspec/specs/skill-evidence/spec.md)。
-
-需要 **Node.js 22.18.0 至 22.x，或 24.11.0 及以上版本**，以及 **pnpm**。已在 Windows / Node 22.22.2、24.14.0 验证，其他平台尚未实测。
-
-在项目根目录执行：
+需要 Node.js `^22.18.0 || >=24.11.0` 和 pnpm。已在 Windows 验证，其他平台尚未实测。以下命令在项目根目录执行。
 
 ```powershell
 pnpm install --frozen-lockfile
 pnpm run build
-node ./dist/index.mjs --days 30
-```
-
-默认读取 `~/.codex`，展示最近 30 天使用记录最多的前 25 个 Skill。省略 `--days` 统计全部历史，`--limit 0` 展示全部行。修改源码后需重新构建。
-
-要使用日志/Hook 双来源统计，每个使用者先生成自己的本机映射：
-
-```powershell
 node ./dist/index.mjs setup
-node ./dist/index.mjs --skill-method logs --days 1
+node ./dist/index.mjs --skill-method logs --days 30
 ```
 
-新增技能或插件后执行 `node ./dist/index.mjs skills refresh`。项目内技能需显式指定范围，例如 `node ./dist/index.mjs skills refresh --project-root E:/your-project`；自定义技能集合用 `--skill-root`，单个插件版本目录用 `--plugin-root`，这些选项均可重复。目录设置会保留供后续刷新使用，旧身份、人工配置和历史路径映射不会因文件删除而自动移除。
+`setup` 为当前使用者生成本机映射。新增技能或插件后运行 `node ./dist/index.mjs skills refresh`。项目内技能可用 `skills refresh --project-root E:/your-project` 纳入，目录设置会保留。
 
-要启用未来的 Hook 采集，再运行 `node ./dist/index.mjs hooks install`，审查生成的采集器及启动文件，并在 Codex `/hooks` 正常信任 PreToolUse / Bash。命令保留其他 Hook 配置并创建备份；不会修改信任状态。初始化与查询均可用 `--codex-dir` 指定同一数据实例，双来源模式的默认目录优先取 `CODEX_HOME`，其次为 `~/.codex`。
+初始化和双来源统计按 `--codex-dir`、`CODEX_HOME`、`~/.codex` 的优先级选择数据目录。每个使用者维护自己的配置。
 
-## 选择统计内容
-
-| 内容 | 命令 | 输出与边界 |
-| --- | --- | --- |
-| Skill | `node ./dist/index.mjs --days 30` | 排名、明确/推断记录、最近记录时间 |
-| Skill 当前来源 | `node ./dist/index.mjs --provenance` | 当前来源候选及文件/用户声明，不追溯历史作者 |
-| MCP | `node ./dist/index.mjs --mcp --days 30` | 按服务端/工具分组的调用、结果、可靠耗时样本 |
-| 离线 Hook | `node ./dist/index.mjs --hooks --days 30` | 已导入同步通知的调用、结果、可靠耗时样本；不安装采集器 |
-
-Skill 表格中 `Total` 为去重后的记录数，`Explicit = Total − Inferred`。`Inferred` 来自受支持的静态 `SKILL.md` 读取；加 `--strict` 可排除这些推断。
-
-MCP/Hook 的 `Calls = Succeeded + Failed + Unknown`。Unknown 表示证据不足；耗时均值仅使用可靠样本，无样本显示 `-`，观测零耗时显示 `0.00`。
-
-## 参数
-
-| 参数 | 说明 |
-| --- | --- |
-| `--days N` / `-d N` | 最近 N×24 小时，支持正有限小数；默认全部历史 |
-| `--limit N` / `-l N` | 表格行数上限，默认 25；非负整数，0 表示全部 |
-| `--codex-dir PATH` | Codex 数据根目录，默认 `~/.codex` |
-| `--strict` | Skill 专用，仅保留明确记录 |
-| `--json` | 完整 JSON，无 CLI 横幅 |
-| `--markdown` | 完整 Skill Markdown 报告 |
-| `--output PATH` | 配合 JSON/Markdown 写无 BOM UTF-8 文件，创建父目录并覆盖同名文件 |
-| `--mcp` / `--hooks` | 选择 MCP 或离线 Hook 模式，二者互斥 |
-| `--provenance` | 为 Skill 追加当前来源资料 |
-| `--skill-root PATH` | 来源模式的 standalone 根，默认所选 Codex 目录下的 skills |
-| `--plugin-root PATH` | 来源模式的一个完整插件版本目录；默认不扫描插件缓存 |
-| `--provenance-map PATH` | 来源模式的 version=1 JSON 用户声明，扫描日志前校验 |
-| `--help` / `-h` | 查看帮助 |
-| `--version` / `-v` | 查看版本 |
-
-`--json` 与 `--markdown` 互斥。`--strict`、`--markdown`、`--provenance` 仅用于 Skill；三个来源路径参数必须配合 `--provenance`。未知参数、非法数值及不兼容组合会在读取输入前报错。
-
-`--limit` 只截断表格，不改变汇总、JSON 或 Markdown 内容。
-
-## 常用操作
-
-以下命令均在项目根目录执行；路径中有空格时加引号。
+## 启用 Hook 采集
 
 ```powershell
-# 最近 7 天，仅明确记录，展示前 10 个 Skill
-node ./dist/index.mjs -d 7 -l 10 --strict
-
-# 指定 Codex 数据目录
-node ./dist/index.mjs --codex-dir "D:/Codex Data/.codex" --days 30
-
-# 保存完整 Skill 报告
-node ./dist/index.mjs --days 30 --markdown --output .local/skill-usage.md
-
-# 保存 MCP JSON；Hook 使用 --hooks
-node ./dist/index.mjs --mcp --json --output .local/mcp-usage.json
-
-# 使用用户声明补充当前来源
-node ./dist/index.mjs --provenance --provenance-map .local/skill-provenance-map.json --json
-
-# 在 PowerShell 中读取 Skill JSON
-$report = node ./dist/index.mjs --days 30 --json | ConvertFrom-Json
-$report.skills | Select-Object skill, total, inferredAuto, lastUsedAt
+node ./dist/index.mjs hooks install
 ```
 
-推荐用 `--output` 保存中文报告，避免 shell 管道转码。成功写文件时 stdout 为空，失败时返回非零退出码。JSON 含项目目录等本机信息，分享前请检查。
+审查安装的采集器及启动文件，在 Codex 中启用 Hooks，并通过 `/hooks` 信任 **PreToolUse / Bash**。安装保留其他钩子并备份配置；采集仅覆盖启用后留存的记录。
 
-## 数据与统计边界
+## 常用统计
 
-| 模式 | 读取内容 |
+| 内容 | 命令 |
 | --- | --- |
-| Skill | `sessions/**/*.jsonl`、`archived_sessions/**/*.jsonl`、`history.jsonl` |
-| MCP | 两个会话目录中的 JSONL，不读 history |
-| Hook | `usage-hooks/**/*.jsonl`；本工具的离线导入约定，非 Codex 原生目录 |
-| 来源资料 | 当前 Skill 元数据、显式指定的单插件版本及可选用户映射 |
+| 最近 30 天日志 | `node ./dist/index.mjs --skill-method logs --days 30` |
+| 最近 30 天 Hook | `node ./dist/index.mjs --skill-method hooks --days 30` |
+| 两来源合并去重 | `node ./dist/index.mjs --skill-method combined --days 30 --limit 0` |
+| MCP 调用 | `node ./dist/index.mjs --mcp --days 30` |
+| 旧版 Skill 统计 | `node ./dist/index.mjs --days 30` |
+| Skill 当前来源 | `node ./dist/index.mjs --provenance` |
+| 离线 Hook 处理器统计 | `node ./dist/index.mjs --hooks --days 30` |
 
-- 时间窗口按滚动 N×24 小时计算；Skill 的每日计数使用运行机器的本地日期。
-- Skill 明确记录按会话/Skill/秒去重；推断每会话每 Skill 最多一次，存在明确记录时抑制推断。手动信号按 120 秒合并、附近 300 秒注入视为回声；跨会话同秒注入可能被合并。
-- 静态读取仅识别部分 Windows/POSIX 命令；动态表达式及任意 shell 写法不保证覆盖，不能可靠区分子 Agent。
-- Skill 的 `filesScanned` 为候选会话数加 history 路径，不代表成功读取数。MCP/Hook 的 `scan` 覆盖整次扫描，也不代表日志完整率。
-- MCP 主要通过合成样本验证；没有独立调用记录的代码封装可能无法统计。Hook 已有一次真实同步链路验证，尚无持续采集、完整持久历史或异步覆盖。
-- 来源资料只提供当前候选；E3 文件声明、U 用户声明及目录名称均不等于官方或原创认证。
+双来源表格固定显示 **Skill、Logs Explicit、Logs Inferred、Hooks、Unique Total、Last Recorded**。按同实例、会话、轮次、技能去重；同轮同技能计一次，`Unique Total` 是选中来源的并集。
 
-## 排障与详细说明
+默认统计身份完整的证据，另列未决数量，不表示完整使用总量。加 `--skill-counts strict` 使用严格口径：受未决影响的计数显示 `—`。未选择来源的列也显示 `—`，已知零显示 `0`。
 
-| 情况 | 先检查 |
+## 参数与导出
+
+| 参数 | 用途 |
 | --- | --- |
-| 统计为空或偏少 | `--codex-dir` 是否为数据根目录；去掉 `--days`、`--strict` 对照 |
-| MCP Unknown 较多 | `scan`、支持的输入结构及结果是否有明确证据 |
-| Hook 为空 | 是否导入通知、首行协议和单位、`coverage` 与 `scan`；空结果不证明未运行 |
-| 来源 unknown/ambiguous/conflict | 元数据诊断、别名、候选身份及用户映射 |
-| 找不到 `dist/index.mjs` | 在根目录运行 `pnpm run build` |
-| 保存中文乱码 | 使用相同选项加 `--output` 重新导出 |
+| `--days N` | 最近 N×24 小时；省略则查看全部历史 |
+| `--limit N` | 表格最多 N 行，默认 25；0 表示全部，不影响汇总或 JSON |
+| `--codex-dir PATH` | 指定 Codex 数据目录 |
+| `--json --output PATH` | 保存完整 UTF-8 JSON，会覆盖同名文件 |
+| `--skill-evidence PATH` | 配合 `--skill-method` 重放证据包 |
+| `--help` | 查看完整参数 |
+
+```powershell
+node ./dist/index.mjs --skill-method combined --days 30 --json --output .local/skill-stats.json
+```
+
+`--strict` 是旧版 Skill 的“排除推断”选项，与 `--skill-counts strict` 不同。`--hooks` 读取离线处理器通知，`--skill-method hooks` 读取技能采集证据。详细参数及组合限制见帮助和下列文档。
+
+## 排障与文档
+
+- 配置缺失：运行 `setup`；映射缺失：运行 `skills refresh`，必要时指定项目或自定义技能根。
+- Hook 没有记录：检查数据目录、Codex 启用与信任状态，以及是否发生受支持的技能读取。
+- 找不到 `dist/index.mjs`：在根目录运行 `pnpm run build`；修改源码后也需重新构建。
+- 分享 JSON 前检查本机信息。统计只读取支持的记录，不能证明历史完整或技能执行成功。
 
 | 文档 | 内容 |
 | --- | --- |
-| [维护卡](MAINTENANCE.md) | 更新、检查、排障与保留数据 |
-| [公共契约](docs/usage-contract.md) | JSON 字段和源码接口 |
-| [Markdown 报告](docs/markdown-report.md) | 报告格式、转义和文件输出 |
-| [MCP 统计](docs/mcp-statistics.md) | 支持的日志结构及扫描质量字段 |
-| [Hook 统计](docs/hooks-statistics.md) | 离线输入协议、覆盖范围和诊断 |
-| [Hook 验证记录](docs/live-hook-validation.md) | 单次真实同步链路的验证证据 |
-| [Skill 来源资料](docs/skill-provenance.md) | 元数据、用户映射及关联规则 |
-
-## Skill 双来源对比（可选）
-
-新增 --skill-method logs|hooks|combined，以技能轮次展示 Logs Explicit、Logs Inferred、Hooks、Unique Total 和完整日期时间。默认旧统计不变。
-
-重放合成样例：
-
-```powershell
-node dist/index.mjs --skill-method combined --skill-evidence docs/examples/skill-comparison-combined.json
-```
-
-实际采集先运行 setup 生成自己的实例和映射，Hook 需另行 hooks install 并正常信任；统计查询本身不写配置。--skill-evidence 可独立重放。日常统计默认 countPolicy=resolved，只计算身份完整证据，另列未决；--skill-counts strict 保留完整总数无法确定时显示 — 的严格口径。见 [使用与输入规范](docs/skill-comparison.md)、[整理指令](docs/skill-evidence-extraction.md)及[真实验证边界](docs/skill-hook-validation.md)。
-
-2026-10-30 已验证本机真实 PreToolUse / Bash 采集及双来源去重：同轮两次读取，日志和 Hook 各保留两条原始证据，统计各为 1，合并仍为 1。该结果限于实测路径，其他路径和完整历史覆盖仍需抽查。
-
-严格模式下若选中列显示 —，先看页脚的未决候选与缺失字段；不是零使用。更新映射后，本采集器 v1 的原生 Hook 路径摘要可在查询时只读重匹配，原始包保留。个人维护环境的独立报告入口可设在 `$env:USERPROFILE\.codex\tools\agent-usage\cli.mjs`；其他使用者直接运行构建后的 dist/index.mjs 即可，不依赖此路径或他人的映射。
+| [Skill 双来源统计](docs/skill-comparison.md) | 初始化、映射、去重与统计口径 |
+| [结构化整理指令](docs/skill-evidence-extraction.md) | Codex 或人工整理证据 |
+| [Skill Hook 验证](docs/skill-hook-validation.md) | 真实验证与故障记录 |
+| [MCP 统计](docs/mcp-statistics.md) | 输入结构与诊断 |
+| [离线 Hook 统计](docs/hooks-statistics.md) | 处理器通知导入协议 |
+| [Skill 来源资料](docs/skill-provenance.md) | 元数据与来源候选 |
+| [公共契约](docs/usage-contract.md) | JSON 与源码接口 |
+| [Markdown 报告](docs/markdown-report.md) | 旧版 Skill 报告导出 |
+| [维护卡](MAINTENANCE.md) | 更新、检查与恢复 |
+| [验收归档](openspec/changes/archive/2026-11-02-add-skill-collection-comparison/implementation-verification.md) | 实施和验证记录 |
