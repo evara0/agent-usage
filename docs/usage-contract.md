@@ -34,11 +34,11 @@
 
 timeZone 只解释原有本地日期口径，不重分桶。strict 和时间窗口由采集后的聚合过程兑现，组装函数不校验其真实性。Skill total 仍表示去重后的使用证据，不表示执行成功或任务质量。
 
-## 可选 Skill 来源资料
+## 独立 Skill 出处清单
 
---provenance 在 SkillUsageReport 顶层增补可选 provenance，内部独立 schemaVersion=1、observedAt、temporalScope=current_reference_only、inventory、associations、diagnostics。默认不增加字段，外层 schemaVersion 保持 1；source/sources 仍表示 Codex 数据来源。Skill 计数、去重、aliases 和项目字段不变，类型位于 src/provenance-types.ts。
+--provenance 输出独立 schemaVersion=2、kind=skill-provenance-inventory，包含 observedAt、temporalScope=current_reference_only、sourceInstanceId、skills、diagnostics。skills 遍历全部本机映射，不读取使用日志；每项包括 skillKey、names、当前状态、逐路径摘要与元数据、用户声明。类型位于 src/provenance-types.ts。
 
-每个字段保留声明值、E3 file_declared/U user_declared 证据及 skill/package/user 范围；unknown、declared、conflict 不表示核验认证。关联为当前参考的 unknown/candidate/ambiguous，不含确定历史作者或作者调用次数。结构、严格映射、范围限制见 [Skill 当前来源资料](skill-provenance.md)。
+每个字段保留 file_declared/user_declared 证据及 skill/package/user 范围；unknown、declared、conflict 不表示核验认证。条目状态为 present/missing/unmapped/unresolved/ambiguous；不同现存路径分别保留，不含使用计数或历史作者归属。结构、声明和边界见 [Skill 出处清单](skill-provenance.md)。旧 v1 旁路关联类型及低层渲染暂作兼容保留，但出处 CLI 不再使用。
 
 ## MCP 类型
 
@@ -60,7 +60,7 @@ timeZone 只解释原有本地日期口径，不重分桶。strict 和时间窗�
 
 Hooks 使用独立 HookRecord / HookStats 和 kind=hooks JSON，不复用 Skill 事件与按秒去重规则。联合 thread/run 身份哈希后关联；同步 command/mcpTool 的明确 completed/failed 形成成功/失败，其余保持 unknown。缺失耗时不补零，路径与原始 ID 不输出。输入限定所选 Codex home 下 usage-hooks 的显式单位离线通知；完整字段与质量计数见 [Hooks 统计说明](hooks-statistics.md)。
 
-Skill 来源只增强 Skills；--provenance 及专用输入不能与 --mcp/--hooks 混用，所有模式参数在映射或日志读取前预检。完整测试入口同时包含来源、Hooks 和跨模式回归。
+Skill 出处独立于用量；--provenance 不能与使用时间、strict、Markdown、MCP/Hook 或新 Skill 统计模式混用，旧扫描根迁至 skills refresh。所有参数在配置和元数据读取前预检；完整测试入口包含出处、Hook 与跨模式回归。
 
 ## 维护与验证
 

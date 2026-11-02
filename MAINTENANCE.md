@@ -70,7 +70,7 @@ openspec validate --archived --strict --no-interactive
 
 先检查 stderr 和退出码，再按 [README 排障表](README.md#排障与详细说明)核对输入目录、窗口及模式诊断。保存报告优先用 `--output`，直接写无 BOM UTF-8；它会覆盖指定目标。
 
-来源歧义查 `provenance.diagnostics` 与映射，去掉 `--provenance` 可恢复普通统计。旧 --hooks 模式查首行单位、scan、coverage；它只读取处理器证据。新采集器需显式 hooks install 注册并由用户正常信任，统计查询不会隐式安装。
+出处查询为独立 --provenance 清单，检查 diagnostics、skills[].status 和逐路径状态；它读取本机映射，不读取使用日志。范围更新用 skills refresh，不给出处查询叠加 days/strict/markdown。旧 --hooks 模式查首行单位、scan、coverage；它只读取处理器证据。新采集器需显式 hooks install 注册并由用户正常信任，统计查询不会隐式安装。
 
 保留原始 Codex 数据、个人映射及交接资料。代码可从 Git 历史恢复后重新构建，已有乱码报告可重新导出；不要通过改写或删除日志修正统计。
 

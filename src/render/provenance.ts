@@ -1,5 +1,5 @@
 import Table from 'cli-table3';
-import type { ProvenanceClaim, SkillInstallation, SkillProvenanceReport } from '../provenance-types.js';
+import type { ProvenanceClaim, SkillInstallation, SkillProvenanceReport, SkillProvenanceInventory } from '../provenance-types.js';
 
 const labels = { file_declared: 'E3 文件声明', user_declared: 'U 用户声明' };
 export function claimText<T>(claim: ProvenanceClaim<T>): string {
@@ -45,4 +45,23 @@ export function renderProvenanceTable(report: SkillProvenanceReport, limit = 25)
   for (const row of rows(report, limit)) table.push(row);
   return ['Skill 来源资料（当前参考）', boundary, table.toString(),
     `metadata: ${Object.entries(report.diagnostics).map(([key, count]) => `${key}=${count}`).join(', ')}`].join('\n');
+}
+
+export function renderProvenanceInventory(report:SkillProvenanceInventory,limit=25):string{
+  const table=new Table({head:['Skill key','Current state','Files','Version','Publisher','Original authors','License'],wordWrap:true});
+  const push=(cells:(string|number)[])=>table.push(cells.map(value=>String(value).replace(/[\x00-\x1f\x7f-\x9f\u2028\u2029]/g,' ')));
+  const skills=limit>0?report.skills.slice(0,limit):report.skills;
+  for(const entry of skills){
+    const candidates=entry.paths.filter(p=>p.metadata);
+    if(!candidates.length)push([entry.skillKey,entry.status,entry.paths.filter(p=>p.status==='present').length+'/'+entry.paths.length,'unknown',
+      claimText(entry.declarations.publisher),claimText(entry.declarations.originalAuthors),claimText(entry.declarations.license)]);
+    else for(const candidate of candidates){const item=candidate.metadata!;
+      push([entry.skillKey,entry.status,entry.paths.filter(p=>p.status==='present').length+'/'+entry.paths.length,item.version??'unknown',
+        claimText(item.publisher),claimText(item.originalAuthors),claimText(item.license)]);}
+  }
+  return ['Skill 出处清单（全部本机映射）','Current metadata only; file/user declarations are not verification.',table.toString(),
+    report.skills.length+' mapped skills · '+report.skills.filter(s=>s.status==='present').length+' present · '+
+    report.skills.filter(s=>s.status==='missing').length+' missing · '+report.skills.filter(s=>s.status==='ambiguous').length+' ambiguous',
+    ...(skills.length<report.skills.length?[(report.skills.length-skills.length)+' more skills (use --limit 0)']:[]),
+    'metadata: '+Object.entries(report.diagnostics).map(([key,count])=>key+'='+count).join(', ')].join('\n');
 }

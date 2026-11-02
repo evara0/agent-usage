@@ -1,9 +1,12 @@
 import { lstat, open, opendir } from 'node:fs/promises';
-import { join, parse, resolve } from 'node:path';
-import type { SkillStats } from './contracts.js';
+import { join, parse, resolve, dirname, basename } from 'node:path';
+import { createHash } from 'node:crypto';
+import { readSkillConfig } from './skill-evidence-io.js';
+import { skillCodexHome } from './skill-home.js';
 import type {
   ProvenanceClaim, ProvenanceEvidence, ProvenanceFields, SkillInstallation,
   SkillProvenanceReport, ProvenanceDiagnostics, ProvenanceMapping, ProvenanceMappingEntry,
+  SkillProvenanceInventory, MappedProvenancePath,
 } from './provenance-types.js';
 
 const MAX_BYTES = 65_536;
@@ -33,6 +36,9 @@ function mappingId(value: unknown): value is string {
     /^standalone:(?:\.system\/)?[\p{L}\p{N}][\p{L}\p{N}_.-]{0,79}$/u.test(value) ||
     /^plugin:[\p{L}\p{N}][\p{L}\p{N}_.-]{0,79}@[\p{L}\p{N}_.-]{1,80}:skills\/[\p{L}\p{N}][\p{L}\p{N}_.-]{0,79}$/u.test(value) ||
     /^registered:[\p{L}\p{N}][\p{L}\p{N}_.-]{0,79}$/u.test(value)
+    || /^(?:project|custom):[a-f0-9]{16}:[\p{L}\p{N}][\p{L}\p{N}_.-]{0,79}$/u.test(value)
+    || /^plugin:[\p{L}\p{N}_.-]+@[\p{L}\p{N}_.-]+:(?:[a-f0-9]{16}:)?[\p{L}\p{N}_.-]+$/u.test(value)
+    || /^manual:[\p{L}\p{N}_.-]+$/u.test(value)
   );
 }
 
@@ -263,7 +269,7 @@ export interface ProvenanceOptions {
 }
 
 /** Reads explicit metadata only. Never reads sessions, credentials, assets, or remote URLs. */
-export async function collectSkillProvenance(skills: readonly Pick<SkillStats, 'skill' | 'aliases'>[],
+export async function collectSkillProvenance(skills: readonly {skill:string;aliases:string[]}[],
   options: ProvenanceOptions): Promise<SkillProvenanceReport> {
   // Validate even programmatic input before any filesystem reads.
   const mapping = options.mapping ? parseProvenanceMapping(options.mapping) : undefined;
@@ -310,4 +316,70 @@ export async function collectSkillProvenance(skills: readonly Pick<SkillStats, '
     return { skill: ALIAS.test(stats.skill) ? stats.skill : '[redacted]', status, candidateIds, unresolvedAliases };
   });
   return { schemaVersion: 1, observedAt: options.observedAt, temporalScope: 'current_reference_only', inventory, associations, diagnostics: diag };
+}
+
+/** Mapping-driven current inventory; never consults sessions, history or usage counts. */
+export async function collectMappedSkillProvenance(options:{codexDir?:string;mapping?:ProvenanceMapping;observedAt:string}):Promise<SkillProvenanceInventory>{
+  const mapping=options.mapping?parseProvenanceMapping(options.mapping):undefined;
+  const configPath=join(skillCodexHome(options.codexDir),'usage-skills','config.json');
+  try{await lstat(configPath);}catch(error){
+    if(record(error)&&error.code==='ENOENT')throw new Error('Skill mapping is missing; run agent-usage setup (use the same --codex-dir).');
+    throw new Error('Unable to inspect Skill mapping');
+  }
+  const config=await readSkillConfig(configPath),diag=diagnostics();
+  const skills:SkillProvenanceInventory['skills']=[];
+  const used=new Set<string>();
+  for(const entry of config.skills){
+    const paths:MappedProvenancePath[]=[];
+    const normal=(file:string)=>/^[A-Za-z]:[\\/]/.test(file)?file.replaceAll('\\','/').toLowerCase():file;
+    const unique=[...new Map(entry.paths.map(file=>[normal(file),file])).values()];
+    const declaration=mapping?.entries.find(item=>item.installationId===entry.skillKey);
+    const declarations={id:entry.skillKey,kind:'user_registered' as const,names:[...entry.names],version:null,...emptyFields()};
+    if(declaration){applyEntry(declarations,declaration);used.add(entry.skillKey);}
+    for(const file of unique){
+      const pathId=createHash('sha256').update(normal(file)).digest('hex');
+      const result:MappedProvenancePath={pathId,status:'unreadable',metadata:null};paths.push(result);
+      try{
+        if(!await noLinks(file,diag)){result.status='skipped_link';continue;}
+        const stat=await lstat(file);
+        if(!stat.isFile()||(process.platform==='win32'?basename(file).toLowerCase()!=='skill.md':basename(file)!=='SKILL.md')){diag.unsupportedMetadata++;result.status='unsupported';continue;}
+        result.status='present';
+        const kind=entry.skillKey.startsWith('plugin:')?'plugin_package' as const:'standalone' as const;
+        const item=await skill(dirname(file),entry.skillKey,kind,entry.names[0]??basename(dirname(file)),null,diag);
+        if(!item)continue;
+        // Only inspect a package manifest adjacent to this mapped skill; never enumerate siblings.
+        const parent=dirname(dirname(file));
+        if((process.platform==='win32'?basename(parent).toLowerCase():basename(parent))==='skills'){
+          const root=dirname(parent);let manifestText:string|null=null;
+          for(const candidate of [join(root,'plugin.json'),join(root,'.codex-plugin','plugin.json')]){
+            try{await lstat(candidate);}catch(error){if(record(error)&&error.code==='ENOENT')continue;readError(error,diag);break;}
+            manifestText=await textFile(candidate,diag);break;
+          }
+          if(manifestText!==null){
+            let manifest:unknown;try{manifest=JSON.parse(manifestText);}catch{diag.invalidMetadata++;}
+            if(record(manifest)&&typeof manifest.name==='string'&&TOKEN.test(manifest.name)){
+              item.kind='plugin_package';
+              if(typeof manifest.version==='string'&&TOKEN.test(manifest.version))item.version=manifest.version;
+              if(record(manifest.author)&&display(manifest.author.name))add(item.publisher,manifest.author.name,'file_declared','package');
+              if(display(manifest.license))add(item.license,manifest.license,'file_declared','package');
+            }else if(manifest!==undefined)diag.invalidMetadata++;
+          }
+        }
+        if(declaration)applyEntry(item,declaration);
+        result.metadata=item;
+      }catch(error){
+        if(record(error)&&error.code==='ENOENT'){result.status='missing';diag.missingFiles++;}
+        else {result.status='unreadable';diag.unreadableFiles++;}
+      }
+    }
+    const present=paths.filter(p=>p.status==='present').length;
+    const uncertain=paths.some(p=>!['present','missing'].includes(p.status));
+    skills.push({skillKey:entry.skillKey,names:[...entry.names],status:!paths.length?'unmapped':present>1?'ambiguous':uncertain?'unresolved':present===1?'present':'missing',
+      paths,declarations:{publisher:declarations.publisher,originalAuthors:declarations.originalAuthors,
+        distribution:declarations.distribution,acquisition:declarations.acquisition,license:declarations.license,localState:declarations.localState}});
+  }
+  diag.unmatchedMappings=(mapping?.entries??[]).filter(entry=>!used.has(entry.installationId)).length;
+  skills.sort((a,b)=>a.skillKey.localeCompare(b.skillKey));
+  return {schemaVersion:2,kind:'skill-provenance-inventory',observedAt:options.observedAt,temporalScope:'current_reference_only',
+    sourceInstanceId:config.sourceInstanceId,skills,diagnostics:diag};
 }

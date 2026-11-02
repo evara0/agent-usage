@@ -36,7 +36,7 @@ node ./dist/index.mjs --skill-method logs --days 1
 | 内容 | 命令 | 输出与边界 |
 | --- | --- | --- |
 | Skill | `node ./dist/index.mjs --days 30` | 排名、明确/推断记录、最近记录时间 |
-| Skill 当前来源 | `node ./dist/index.mjs --provenance` | 当前来源候选及文件/用户声明，不追溯历史作者 |
+| 技能出处清单 | `node ./dist/index.mjs --provenance` | 全部本机映射及当前文件状态、出处声明，不读取使用日志 |
 | MCP | `node ./dist/index.mjs --mcp --days 30` | 按服务端/工具分组的调用、结果、可靠耗时样本 |
 | 离线 Hook | `node ./dist/index.mjs --hooks --days 30` | 已导入同步通知的调用、结果、可靠耗时样本；不安装采集器 |
 
@@ -56,14 +56,14 @@ MCP/Hook 的 `Calls = Succeeded + Failed + Unknown`。Unknown 表示证据不足
 | `--markdown` | 完整 Skill Markdown 报告 |
 | `--output PATH` | 配合 JSON/Markdown 写无 BOM UTF-8 文件，创建父目录并覆盖同名文件 |
 | `--mcp` / `--hooks` | 选择 MCP 或离线 Hook 模式，二者互斥 |
-| `--provenance` | 为 Skill 追加当前来源资料 |
-| `--skill-root PATH` | 来源模式的 standalone 根，默认所选 Codex 目录下的 skills |
-| `--plugin-root PATH` | 来源模式的一个完整插件版本目录；默认不扫描插件缓存 |
+| `--provenance` | 独立查询全部已映射技能的当前出处清单 |
+| `skills refresh --skill-root PATH` | 更新自定义技能集合目录 |
+| `skills refresh --plugin-root PATH` | 更新一个插件版本目录 |
 | `--provenance-map PATH` | 来源模式的 version=1 JSON 用户声明，扫描日志前校验 |
 | `--help` / `-h` | 查看帮助 |
 | `--version` / `-v` | 查看版本 |
 
-`--json` 与 `--markdown` 互斥。`--strict`、`--markdown`、`--provenance` 仅用于 Skill；三个来源路径参数必须配合 `--provenance`。未知参数、非法数值及不兼容组合会在读取输入前报错。
+`--json` 与 `--markdown` 互斥。出处查询不接受 `--days`、`--strict`、`--markdown` 或用量模式；`--provenance-map` 须配合 `--provenance`，发现范围通过 `skills refresh` 设置。未知参数、非法数值及不兼容组合在读取输入前报错。
 
 `--limit` 只截断表格，不改变汇总、JSON 或 Markdown 内容。
 
@@ -101,7 +101,7 @@ $report.skills | Select-Object skill, total, inferredAuto, lastUsedAt
 | Skill | `sessions/**/*.jsonl`、`archived_sessions/**/*.jsonl`、`history.jsonl` |
 | MCP | 两个会话目录中的 JSONL，不读 history |
 | Hook | `usage-hooks/**/*.jsonl`；本工具的离线导入约定，非 Codex 原生目录 |
-| 来源资料 | 当前 Skill 元数据、显式指定的单插件版本及可选用户映射 |
+| 出处清单 | 本机技能映射中的全部条目、各路径当前文件及相邻插件声明，可选用户出处声明 |
 
 - 时间窗口按滚动 N×24 小时计算；Skill 的每日计数使用运行机器的本地日期。
 - Skill 明确记录按会话/Skill/秒去重；推断每会话每 Skill 最多一次，存在明确记录时抑制推断。手动信号按 120 秒合并、附近 300 秒注入视为回声；跨会话同秒注入可能被合并。

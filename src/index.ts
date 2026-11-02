@@ -12,10 +12,8 @@ import { aggregateMcpEvents } from './mcp-aggregate.js';
 import { renderMcpTable } from './render/mcp-table.js';
 import { USAGE_SCHEMA_VERSION } from './contracts.js';
 import { emitReport } from './output.js';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
-import { collectSkillProvenance, loadProvenanceMapping } from './provenance.js';
-import { renderProvenanceTable } from './render/provenance.js';
+import { collectMappedSkillProvenance, loadProvenanceMapping } from './provenance.js';
+import { renderProvenanceInventory } from './render/provenance.js';
 import { collectHookEvents } from './adapters/hooks.js';
 import { collectSkillComparison } from './skill-comparison-cli.js';
 import { renderSkillComparison } from './render/skill-comparison.js';
@@ -42,9 +40,9 @@ const command = define({
     limit: { type: 'number', short: 'l', default: 25, description: 'Maximum table rows (0 = all)' },
     strict: { type: 'boolean', description: 'Exclude inferred SKILL.md reads' },
     'codex-dir': { type: 'string', description: 'Codex home directory (default: ~/.codex)' },
-    provenance: { type: 'boolean', description: 'Show offline current Skill provenance declarations (not historical attribution)' },
-    'skill-root': { type: 'string', description: 'Standalone skills root for --provenance (default: selected Codex home/skills)' },
-    'plugin-root': { type: 'string', description: 'One plugin version directory for --provenance' },
+    provenance: { type: 'boolean', description: 'List all mapped Skills and current provenance (independent of usage)' },
+    'skill-root': { type: 'string', description: 'Moved to skills refresh --skill-root (not a provenance query option)' },
+    'plugin-root': { type: 'string', description: 'Moved to skills refresh --plugin-root (not a provenance query option)' },
     'provenance-map': { type: 'string', description: 'Validated version 1 JSON user declarations for --provenance' },
   },
   run: async ctx => {
@@ -70,15 +68,18 @@ const command = define({
       }
       return;
     }
-    // Validate mapping before any usage log scan; never echo its content on errors.
-    let mapping;
-    if (ctx.values['provenance-map']) {
-      try { mapping = await loadProvenanceMapping(ctx.values['provenance-map']); }
-      catch (error) {
-        console.error(error instanceof Error ? error.message : 'Invalid provenance mapping');
-        process.exitCode = 1;
-        return;
+    if (ctx.values.provenance) {
+      try {
+        const mapping=ctx.values['provenance-map']?await loadProvenanceMapping(ctx.values['provenance-map']):undefined;
+        const report=await collectMappedSkillProvenance({codexDir:ctx.values['codex-dir'],mapping,observedAt:new Date().toISOString()});
+        if(ctx.values.json)await emitReport(JSON.stringify(report,null,2),ctx.values.output);
+        else console.log(renderProvenanceInventory(report,limit));
       }
+      catch (error) {
+        console.error(error instanceof Error ? error.message : 'Unable to collect Skill provenance inventory');
+        process.exitCode = 1;
+      }
+      return;
     }
     if (ctx.values.hooks) {
       const { records, scan, coverage } = await collectHookEvents(ctx.values['codex-dir']);
@@ -109,10 +110,6 @@ const command = define({
     }
     const scan = await collectCodexEvents(ctx.values['codex-dir']);
     const result = aggregate(scan.events, { days, strict });
-    const provenance = ctx.values.provenance ? await collectSkillProvenance(result.skills, {
-      skillRoot: ctx.values['skill-root'] ?? join(ctx.values['codex-dir'] ?? join(homedir(), '.codex'), 'skills'),
-      pluginRoot: ctx.values['plugin-root'], mapping, observedAt: new Date().toISOString(),
-    }) : undefined;
     const elapsedMs = performance.now() - started;
     if (ctx.values.json || ctx.values.markdown) {
       const report = createSkillUsageReport(result, {
@@ -120,11 +117,9 @@ const command = define({
         filesScanned: scan.filesScanned, elapsedMs,
         strict: Boolean(strict), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
-      if (provenance) report.provenance = provenance;
       await emitReport(ctx.values.markdown ? renderMarkdown(report) : JSON.stringify(report, null, 2), ctx.values.output);
     } else {
-      console.log(renderTable(result, { limit, days, filesScanned: scan.filesScanned, elapsedMs }) +
-        (provenance ? `\n${renderProvenanceTable(provenance, limit)}` : ''));
+      console.log(renderTable(result, { limit, days, filesScanned: scan.filesScanned, elapsedMs }));
     }
   },
 });
@@ -142,6 +137,12 @@ options.help = { type: 'boolean', short: 'h' };
 options.version = { type: 'boolean', short: 'v' };
 try {
   const { values } = parseArgs({ args: argv, options, strict: true, allowPositionals: false });
+  if(values.provenance){
+    for(const flag of ['days','strict','markdown'])if(values[flag]!==undefined&&values[flag]!==false)
+      throw new Error('--provenance is a current inventory independent of usage; cannot combine with --'+flag);
+    for(const flag of ['skill-root','plugin-root'])if(values[flag]!==undefined)
+      throw new Error('--provenance reads the local Skill mapping; configure roots with skills refresh --'+flag+' instead');
+  }
   if (values['skill-method'] !== undefined) {
     if (!['logs', 'hooks', 'combined'].includes(String(values['skill-method']))) throw new Error('Invalid --skill-method');
     for (const flag of ['mcp','hooks','provenance','strict','markdown','skill-root','plugin-root','provenance-map']) {
@@ -186,5 +187,5 @@ try {
 
 await cli(argv, command, {
   name: 'agent-usage', version: '0.1.0', description: 'Local Codex Skill, MCP and offline Hook evidence statistics',
-  renderHeader: async ctx => (ctx.values.json || ctx.values.markdown || ctx.values['skill-method'] || ctx.values.output !== undefined) && !('help' in ctx.values && ctx.values.help) ? '' : renderHeader(ctx),
+  renderHeader: async ctx => (ctx.values.json || ctx.values.markdown || ctx.values.provenance || ctx.values['skill-method'] || ctx.values.output !== undefined) && !('help' in ctx.values && ctx.values.help) ? '' : renderHeader(ctx),
 });
