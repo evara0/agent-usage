@@ -1,7 +1,7 @@
 <h1 align="center">agent-usage</h1>
 
 <p align="center">
-  <strong>Local, evidence-based usage statistics for Codex Skills, MCP tools and Hooks</strong><br>
+  <strong>Local, evidence-based usage statistics for Codex Skills</strong><br>
   No API key · No telemetry · Nothing leaves your machine
 </p>
 
@@ -15,6 +15,16 @@
 <p align="center">English | <a href="README.zh-CN.md">简体中文</a></p>
 
 ---
+
+## Project focus
+
+| Feature | Status |
+| --- | --- |
+| Skills statistics (current focus) | Logs + Hook collection, merged and deduplicated by default |
+| [MCP statistics](docs/mcp-statistics.md) | Incomplete; real usage pipeline unverified |
+| [Hook execution statistics](docs/hooks-statistics.md) | Incomplete; offline imports only |
+
+`hooks install` and the Skills table's **Hooks** column collect and show Skill evidence; `--hooks` measures Hook executions themselves.
 
 ## Quick start
 
@@ -43,25 +53,24 @@ Date: 2026-10-28    Mode: Logs + Hooks    Counts Resolved evidence
 | Goal | Command |
 | --- | --- |
 | Default (deduplicated logs + hooks) | `--days 30` |
-| Logs only / hooks only | `--skill-method logs` / `--skill-method hooks` |
-| MCP calls | `--mcp --days 30` |
+| Skills: Logs only / Hook-collected evidence only | `--skill-method logs` / `--skill-method hooks` |
 | Skill provenance and licenses | `--provenance` |
 | Export JSON / Markdown | `--json --output a.json` / `--markdown --output a.md` |
 | Refresh the mapping after adding skills or plugins | `skills refresh` |
-| Install the live Hook collector | `hooks install` |
+| Install the live Skill collector (via Hook) | `hooks install` |
 
 Append these to `node ./dist/index.mjs`; full flags are in `--help`.
 
 ## How to read the numbers
 
-- **Logs Explicit**: an explicit request or injection. **Logs Inferred**: only a `SKILL.md` read (weak evidence). **Hooks**: evidence from the live collector.
+- In the Skills table, **Logs Explicit** means an explicit request or injection; **Logs Inferred** means only a `SKILL.md` read (weak evidence); **Hooks** means Hook-collected Skill evidence, not Hook execution counts.
 - None of them prove that a skill executed successfully. `Unique Total` deduplicates by instance + session + turn + skill.
 - Unresolved candidates are counted separately and excluded by default; `--skill-counts strict` shows `—` for counts affected by unresolved evidence.
 
 ## Notes
 
 - Run `skills refresh` after plugin updates, otherwise reads of the new versions stay unmapped.
-- Hook collection requires enabling Hooks in Codex and trusting PreToolUse / Bash via `/hooks`; it only covers records created afterwards.
+- Skill collection via Hook requires enabling Hooks in Codex and trusting PreToolUse / Bash via `/hooks`; it only covers records created afterwards.
 - JSON / Markdown may contain skill names and path digests; review before sharing. Verified on Windows only.
 
 Docs: [docs/](docs/) · Maintenance: [MAINTENANCE.md](MAINTENANCE.md) · License: [LICENSE](LICENSE). The Codex collectors derive from [skillusage](https://github.com/lovstudio/skillusage) (MIT); see [NOTICE](NOTICE).
