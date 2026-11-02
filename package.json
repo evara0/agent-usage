@@ -1,7 +1,7 @@
 {
   "name": "agent-usage",
   "version": "0.1.0",
-  "description": "Local Codex Skill, MCP and offline Hook evidence statistics CLI",
+  "description": "Local, evidence-based usage statistics for Codex Skills, MCP tools and Hooks",
   "type": "module",
   "bin": {
     "agent-usage": "dist/index.mjs",
