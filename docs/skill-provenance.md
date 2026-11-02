@@ -11,7 +11,7 @@ pnpm run build
 # 默认只读所选 Codex home 下的 skills；不会扫描全部插件缓存
 node ./dist/index.mjs --provenance --days 30
 node ./dist/index.mjs --provenance --json
-node ./dist/index.mjs --provenance --markdown --output .local/skill-provenance.md
+node ./dist/index.mjs --provenance --json --output .local/skill-provenance.json
 
 # 另选一个 standalone 根和一个完整插件版本目录（均为示例路径）
 node ./dist/index.mjs --provenance --skill-root "D:/example/skills" --plugin-root "D:/example/plugin/1.0.0" --json
@@ -78,7 +78,7 @@ node ./dist/index.mjs --provenance --provenance-map .local/skill-provenance-map.
 
 - standalone ID：`standalone:<目录名>` 或 `standalone:.system/<目录名>`，精确候选名是目录名与合法 front matter name。`.system` 仅用于定位，不授予官方身份。
 - 插件 ID：`plugin:<包名>@<版本或 unknown>:skills/<目录名>`；自动候选名必须是 `<包名>:<目录名或Skill名>`。不会用插件短 Skill 名静默匹配；确需短名可由用户显式注册 aliases，出现多个匹配仍显示 ambiguous。
-- IDs 只在本次选定根内有效，不是全局安装 ID，也不证明启用状态。未使用的本地资料同样列在 JSON/Markdown inventory 中。
+- IDs 只在本次选定根内有效，不是全局安装 ID，也不证明启用状态。未使用的本地资料同样列在 JSON inventory 中。
 
 每个现有统计项在 associations 中只提供当前候选：无匹配为 unknown；全部原始 aliases 唯一指向同一身份为 candidate；多身份、部分未解析或目录截断为 ambiguous。candidateIds、unresolvedAliases 解释歧义，不从规范化短名称猜测；不安全的输入名称在新增资料中显示 `[redacted]`。
 
@@ -98,7 +98,7 @@ provenance
   diagnostics: 有限扫描质量计数
 ```
 
-原 source=codex、sources、skills、totals、时间窗口和去重均不变；不将全部历史次数划给候选作者。表格追加来源区，limit 限制统计项数（同项多候选可展开多行）；JSON 与 Markdown 不受 limit 截断。Markdown 含完整关联、未解析别名和资料清单；原始结构化 values 以 JSON 为准。`--output` 继续直接写无 BOM UTF-8。
+原 source=codex、sources、skills、totals、时间窗口和去重均不变；不将全部历史次数划给候选作者。表格追加来源区，limit 限制统计项数（同项多候选可展开多行）；JSON 不受 limit 截断，包含完整关联、未解析别名和资料清单。`--output` 继续直接写无 BOM UTF-8。Markdown 已迁移到新技能轮次统计，不再接受 --provenance；出处信息请单独以表格或 JSON 查询。
 
 ## 有界读取、隐私和离线行为
 

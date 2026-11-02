@@ -1,35 +1,39 @@
-# Markdown 报告模块
+# Skill Markdown 报告
 
-源码接口位于 `src/render/markdown.ts`：
+Markdown 与新 JSON/表格使用同一份 `SkillComparisonReport`，按同实例、会话、轮次、技能去重。
+
+```powershell
+node ./dist/index.mjs --skill-method combined --days 30 --markdown --output .local/skill-usage.md
+node ./dist/index.mjs --skill-method logs --days 30 --markdown
+node ./dist/index.mjs --skill-method hooks --skill-counts strict --markdown
+```
+
+首次本机查询需先 `setup`；也可用 `--skill-evidence PATH` 独立重放已有证据包。`--days`、`--codex-dir`、`--skill-counts resolved|strict` 与新 JSON 的含义一致。`--limit` 不截断 Markdown。
+
+## 输出与口径
+
+固定六列：Skill、Logs Explicit、Logs Inferred、Hooks、Unique Total、Last Recorded。最近时间按报告声明的时区显示 `YYYY-MM-DD HH:mm`，不保留旧版的 ISO 排名列或扫描元信息。
+
+报告注明 mode、计数策略、skill-turn 单位、统计窗口、时区和生成时间。resolved 只统计身份完整的证据，另列当前范围的未决候选；strict 保留受影响的未知计数。未选来源或严格未知为 `—`，已知零为 `0`。未决数量只包括选中来源及当前窗口，原始明细仍保留在 JSON。
+
+计数来自上游新模型，Unique Total 是选中来源技能轮次的并集，不代表执行成功或完整历史。报告展示上游的全部技能和排序，不重新采集、聚合、筛选技能或修改输入。
+
+## 旧命令迁移
+
+旧 `--days 30 --markdown` 不再生成旧口径报告，会在扫描前提示增加 `--skill-method logs|hooks|combined`。旧 `--strict` 是排除推断，不等于新严格未知策略；新命令使用 `--skill-counts strict`。`--provenance --markdown` 不再支持，出处信息与新统计报告分开查询。旧非 Markdown 表格和 JSON 暂时保留。
+
+`--json` 与 `--markdown` 互斥，新 Markdown 也不能和 `--mcp`、`--hooks`、`--provenance` 或旧 `--strict` 混用；错误在读取输入及写文件前拒绝。
+
+## 源码与文件输出
 
 ```ts
-import type { SkillUsageReport } from './src/contracts.js';
+import type { SkillComparisonReport } from './src/skill-evidence-types.js';
 import { renderMarkdown } from './src/render/markdown.js';
-
-// report 是上游组装的完整 SkillUsageReport。
-function formatReport(report: SkillUsageReport): string {
+function formatReport(report: SkillComparisonReport): string {
   return renderMarkdown(report);
 }
 ```
 
-CLI 已接入 `node ./dist/index.mjs --days 30 --markdown`，可与 --strict、--codex-dir 配合使用；与 --json 互斥，冲突在扫描前拒绝。输出没有 CLI 横幅，--limit 不截断报告。保存示例见 README。模块仍是源码级接口，未建立 npm 库导出；渲染器不读取日志，也不自行保存文件。
+这是源码级接口，不再接收旧 `SkillUsageReport`。渲染器只返回字符串，使用上游声明时区，不读取当前时钟或默认时区。名称与文本转义 Markdown/HTML、折叠换行并移除控制字符，长名称不截断；日期时间单元格来自格式化后的有效报告时间。
 
-保存文件时使用 `node ./dist/index.mjs --days 30 --markdown --output .local/skill-usage.md`。CLI 的输出模块直接写无 BOM UTF-8、创建父目录并覆盖目标文件，绕过 PowerShell 原生进程管道的文本解码；渲染器仍只返回字符串。指定 --output 时 stdout 为空，写入错误通过 stderr 和非零退出码报告。
-
-报告包含中文概览、版本与来源、生成时间、滚动窗口、strict、日期分桶时区、候选扫描路径数和耗时，随后展示全部 Skill 排名及最近记录时间。排名按 total 降序、同数按名称 localeCompare 排序，不受终端表格默认 25 行限制。输入对象和数组不会改变；重复调用不读取时钟或运行机器时区。
-
-明确数使用 `total - inferredAuto`，推断数使用 `inferredAuto`；概览的推断总数来自完整 skills 的该字段之和，其他概览总数使用输入 totals。`auto` 包含明确自动注入和推断，不能将它全部视为推断。窗口与 strict 必须由上游兑现；渲染器不验证或再次过滤它们。最近记录时间保留输入 ISO 值，null 显示“无记录”。空 skills 显示无可用记录并保留上下文与限制说明。
-
-输入字符串中的 Markdown 标记、HTML 字符及冒号转成字符实体，换行和制表符折叠为空格，其他控制字符去除，避免破坏表格、注入链接或 HTML。实体在 Markdown 阅读器中显示为原字符；源码中的时间冒号因此显示为 `&#58;`。长名称完整保留。推荐使用支持管道表格与字符实体的 Markdown 阅读器。
-
-本报告不展开 daily、projects、sources 或 aliases 明细。计数代表去重后的使用证据，不代表执行成功或任务质量；filesScanned 是候选 rollout 数加 history 路径，不能当作成功读取数。其他契约见 [公共契约](usage-contract.md)。
-
-报告测试已接入项目 test 脚本；也可以单独编译后执行：
-
-```powershell
-pnpm run test
-pnpm exec tsc -p tsconfig.test.json
-node --test .test-dist/tests/markdown.test.js
-```
-
-测试只用内存合成报告。与项目其他构建及测试顺序执行，避免同一个生成目录发生竞争。
+CLI 通过统一输出模块直接写无 BOM UTF-8，创建父目录并覆盖目标；指定 `--output` 时 stdout 为空，写入失败返回非零状态。测试覆盖三种视图、策略、未决范围、重放、完整行、特殊字符及中文路径；执行 `pnpm run test`、`pnpm run typecheck`、`pnpm run test:cli` 验证。

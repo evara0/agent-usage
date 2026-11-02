@@ -34,7 +34,7 @@ const command = define({
     'skill-evidence': { type: 'string', description: 'Replay a structured Skill evidence JSON package' },
     'skill-counts': { type: 'string', description: 'Skill count policy: resolved (default) or strict' },
     json: { type: 'boolean', description: 'Output complete machine-readable JSON' },
-    markdown: { type: 'boolean', description: 'Output a complete Skill Markdown report' },
+    markdown: { type: 'boolean', description: 'Output a complete Skill evidence Markdown report (requires --skill-method)' },
     mcp: { type: 'boolean', description: 'Show MCP statistics instead of Skills (table or JSON)' },
     hooks: { type: 'boolean', description: 'Show offline Hook notification statistics (table or JSON)' },
     output: { type: 'string', description: 'Write Markdown or JSON directly to a UTF-8 file (overwrites)' },
@@ -63,6 +63,7 @@ const command = define({
           evidencePath: ctx.values['skill-evidence'], codexDir: ctx.values['codex-dir'], days,
           countPolicy:ctx.values['skill-counts'] as SkillCountPolicy|undefined });
         if (ctx.values.json) await emitReport(JSON.stringify(report, null, 2), ctx.values.output);
+        else if(ctx.values.markdown) await emitReport(renderMarkdown(report),ctx.values.output);
         else console.log(renderSkillComparison(report, limit));
       } catch (error) {
         console.error(error instanceof Error && error.message.startsWith('Invalid skill evidence:') ? error.message : 'Unable to collect Skill comparison evidence');
@@ -114,14 +115,14 @@ const command = define({
       pluginRoot: ctx.values['plugin-root'], mapping, observedAt: new Date().toISOString(),
     }) : undefined;
     const elapsedMs = performance.now() - started;
-    if (ctx.values.json || ctx.values.markdown) {
+    if (ctx.values.json) {
       const report = createSkillUsageReport(result, {
         generatedAt: new Date().toISOString(), windowDays: days ?? null,
         filesScanned: scan.filesScanned, elapsedMs,
         strict: Boolean(strict), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
       if (provenance) report.provenance = provenance;
-      await emitReport(ctx.values.markdown ? renderMarkdown(report) : JSON.stringify(report, null, 2), ctx.values.output);
+      await emitReport(JSON.stringify(report, null, 2), ctx.values.output);
     } else {
       console.log(renderTable(result, { limit, days, filesScanned: scan.filesScanned, elapsedMs }) +
         (provenance ? `\n${renderProvenanceTable(provenance, limit)}` : ''));
@@ -144,7 +145,7 @@ try {
   const { values } = parseArgs({ args: argv, options, strict: true, allowPositionals: false });
   if (values['skill-method'] !== undefined) {
     if (!['logs', 'hooks', 'combined'].includes(String(values['skill-method']))) throw new Error('Invalid --skill-method');
-    for (const flag of ['mcp','hooks','provenance','strict','markdown','skill-root','plugin-root','provenance-map']) {
+    for (const flag of ['mcp','hooks','provenance','strict','skill-root','plugin-root','provenance-map']) {
       if (values[flag] !== undefined && values[flag] !== false) throw new Error('--skill-method cannot combine with --' + flag);
     }
   }
@@ -155,6 +156,7 @@ try {
   }
   if (typeof values.output === 'string' && !values.output.trim()) throw new Error('--output must not be empty');
   if (values.json && values.markdown) throw new Error('--json and --markdown are mutually exclusive');
+  if(values.markdown&&!values['skill-method'])throw new Error('--markdown now requires --skill-method logs|hooks|combined; use --skill-counts strict for strict evidence counts (legacy --strict/provenance Markdown is no longer supported)');
   for (const option of ['skill-root', 'plugin-root', 'provenance-map']) {
     if (values[option] !== undefined && (!values.provenance || !String(values[option]).trim())) {
       throw new Error(`--${option} requires --provenance and a nonempty value`);

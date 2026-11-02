@@ -53,7 +53,7 @@ MCP/Hook 的 `Calls = Succeeded + Failed + Unknown`。Unknown 表示证据不足
 | `--codex-dir PATH` | Codex 数据根目录，默认 `~/.codex` |
 | `--strict` | Skill 专用，仅保留明确记录 |
 | `--json` | 完整 JSON，无 CLI 横幅 |
-| `--markdown` | 完整 Skill Markdown 报告 |
+| `--markdown` | 新 Skill 证据 Markdown 报告，必须配合 `--skill-method` |
 | `--output PATH` | 配合 JSON/Markdown 写无 BOM UTF-8 文件，创建父目录并覆盖同名文件 |
 | `--mcp` / `--hooks` | 选择 MCP 或离线 Hook 模式，二者互斥 |
 | `--provenance` | 为 Skill 追加当前来源资料 |
@@ -63,7 +63,7 @@ MCP/Hook 的 `Calls = Succeeded + Failed + Unknown`。Unknown 表示证据不足
 | `--help` / `-h` | 查看帮助 |
 | `--version` / `-v` | 查看版本 |
 
-`--json` 与 `--markdown` 互斥。`--strict`、`--markdown`、`--provenance` 仅用于 Skill；三个来源路径参数必须配合 `--provenance`。未知参数、非法数值及不兼容组合会在读取输入前报错。
+`--json` 与 `--markdown` 互斥。Markdown 只用于新 `--skill-method`，其严格策略用 `--skill-counts strict`；旧 `--strict` 和出处查询不能与 Markdown 合用。来源路径参数用于 `--provenance`。不兼容组合在读取输入前报错。
 
 `--limit` 只截断表格，不改变汇总、JSON 或 Markdown 内容。
 
@@ -79,7 +79,7 @@ node ./dist/index.mjs -d 7 -l 10 --strict
 node ./dist/index.mjs --codex-dir "D:/Codex Data/.codex" --days 30
 
 # 保存完整 Skill 报告
-node ./dist/index.mjs --days 30 --markdown --output .local/skill-usage.md
+node ./dist/index.mjs --skill-method combined --days 30 --markdown --output .local/skill-usage.md
 
 # 保存 MCP JSON；Hook 使用 --hooks
 node ./dist/index.mjs --mcp --json --output .local/mcp-usage.json
@@ -134,6 +134,8 @@ $report.skills | Select-Object skill, total, inferredAuto, lastUsedAt
 ## Skill 双来源对比（可选）
 
 新增 --skill-method logs|hooks|combined，以技能轮次展示 Logs Explicit、Logs Inferred、Hooks、Unique Total 和完整日期时间。默认旧统计不变。
+
+加 `--markdown` 可生成同口径完整报告，不受 `--limit` 截断。旧裸 `--markdown` 已退出，需明确选择新 method；详见 [迁移说明](docs/markdown-report.md)。
 
 重放合成样例：
 

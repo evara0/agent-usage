@@ -53,7 +53,7 @@ node dist/index.mjs --skill-method hooks --codex-dir E:/example/codex-home --jso
 node dist/index.mjs --skill-method combined --codex-dir E:/example/codex-home --limit 0
 ~~~
 
-logs 只扫描该根下受支持的 sessions、archived_sessions 和 history.jsonl。hooks 只读取 usage-skills 下已留存的 JSON 包。combined 读取两者；文件属于不同 sourceInstanceId 时拒绝拼接，必须分别查询。--skill-evidence 单独重放指定包，不再额外扫描本机日志。它可与 days、limit、json/output 合用，但不能与 --hooks、--mcp、--provenance、--strict、--markdown 合用。
+logs 只扫描该根下受支持的 sessions、archived_sessions 和 history.jsonl。hooks 只读取 usage-skills 下已留存的 JSON 包。combined 读取两者；不同 sourceInstanceId 拒绝拼接。--skill-evidence 单独重放指定包，不额外扫描个人日志；可与 days、limit、json/output 或 markdown/output 合用，JSON 与 Markdown 互斥。--hooks、--mcp、--provenance、旧 --strict 仍不可混用。Markdown 与 JSON 使用同一报告模型，limit 只截断终端表格。
 
 ## 去重与未知
 

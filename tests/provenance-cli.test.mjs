@@ -48,7 +48,7 @@ test('opt-in current references preserve complete historical usage and default c
   assert.ok(!JSON.stringify(result.provenance).includes(root));
 });
 
-test('table limits source associations; Markdown and UTF-8 JSON exports stay complete', async t => {
+test('table limits source associations; JSON stays complete and legacy provenance Markdown is rejected', async t => {
   const root = await fixture(t);
   const table = run(['--codex-dir', root, '--provenance', '--limit', '1']).stdout;
   assert.match(table, /Skill 来源资料（当前参考）/);
@@ -60,13 +60,7 @@ test('table limits source associations; Markdown and UTF-8 JSON exports stay com
   assert.match(bytes.toString('utf8'), /作者团队/);
   assert.equal(JSON.parse(bytes).provenance.associations.length, 2);
   const mdPath = join(root, '中文输出', '来源.md');
-  assert.equal(run(['--codex-dir', root, '--provenance', '--markdown', '--limit', '1', '--output', mdPath]).stdout, '');
-  const markdown = await readFile(mdPath, 'utf8');
-  assert.ok(markdown.startsWith('# Codex Skill 使用报告\n'));
-  assert.match(markdown, /E3 文件声明/);
-  assert.match(markdown, /作者团队/);
-  assert.match(markdown, /\| missing \| unknown \|/);
-  assert.match(markdown, /\| sample \| candidate \|/);
+  run(['--codex-dir', root, '--provenance', '--markdown', '--output', mdPath], false);
 });
 
 test('explicit root and map support U declarations and conflict without overwriting files', async t => {

@@ -30,7 +30,7 @@ for(const [mode,expected]of [['logs',5],['hooks',4],['combined',6]]){
 }
 test('incompatible flags fail before evidence is read or output written',async t=>{
  const dir=await temp(t),out=join(dir,'must-not-exist.json');
- for(const flag of ['--hooks','--mcp','--strict','--markdown','--provenance']){
+ for(const flag of ['--hooks','--mcp','--strict','--provenance']){
   const r=run(['--skill-method','logs',flag,'--skill-evidence',join(dir,'missing'),'--json','--output',out]);
   assert.notEqual(r.status,0);assert.equal(r.stdout,'');assert.match(r.stderr,/cannot combine/);
  }

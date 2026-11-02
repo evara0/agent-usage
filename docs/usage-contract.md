@@ -69,3 +69,5 @@ Skill 来源只增强 Skills；--provenance 及专用输入不能与 --mcp/--hoo
 ## 独立 Skill 对比契约
 
 显式 --skill-method 使用 kind=skill-usage-comparison、schemaVersion=1，与本文件的旧 SkillUsageReport v1 分开。完整格式见 schemas/skill-evidence-v1.schema.json 与 docs/skill-comparison.md；技能轮次、实例身份、逐条证据及未决项均可重算。旧 source、total 与去重不改变。
+
+Markdown 渲染已迁移至该新模型：renderMarkdown 接收 SkillComparisonReport，CLI 使用 --skill-method ... --markdown。旧 SkillUsageReport 仍服务旧 JSON，但不再是 Markdown 输入；旧裸 --markdown 在读取前提示迁移。
