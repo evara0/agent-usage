@@ -6,6 +6,8 @@
 
 ## 快速开始
 
+2026-11-02 已验收日志/Hook 双来源统计、逐轮去重及每个使用者独立初始化流程。变更与验证记录见 [归档](openspec/changes/archive/2026-11-02-add-skill-collection-comparison/implementation-verification.md)，当前规则见 [Skill 证据规范](openspec/specs/skill-evidence/spec.md)。
+
 需要 **Node.js 22.18.0 至 22.x，或 24.11.0 及以上版本**，以及 **pnpm**。已在 Windows / Node 22.22.2、24.14.0 验证，其他平台尚未实测。
 
 在项目根目录执行：

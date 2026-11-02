@@ -1,7 +1,7 @@
 ---
 title: "agent-usage · 项目维护卡"
 project: "agent-usage"
-updated: "2026-10-30"
+updated: "2026-11-02"
 status: "Windows / Node 24.14.0；真实 Skill Hook 采集与日志同轮去重已验证"
 environments:
   - "Windows 本地 Node.js"
@@ -29,7 +29,7 @@ TypeScript / Node ESM CLI，pnpm 管理依赖，tsdown 构建，node:test 测试
 
 需要 Node **22.18.0 至 22.x，或 >=24.11.0**（`^22.18.0 || >=24.11.0`）及 pnpm；构建目标为 `node22.18`。已验证 Windows / Node 22.22.2 与 24.14.0，其他平台尚未实测。
 
-在当前仓库根目录执行；本次工作树为 `E:/261027-agent_usage-tool/worktrees/skill-collection-contract`：
+在当前仓库根目录执行；本机主目录为 `E:/261027-agent_usage-tool/agent-usage`：
 
 ```powershell
 pnpm install --frozen-lockfile
