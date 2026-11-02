@@ -2,6 +2,7 @@ import { lstat, open, opendir } from 'node:fs/promises';
 import { join, parse, resolve, dirname, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 import { readSkillConfig } from './skill-evidence-io.js';
+import { isLinkComponent } from './path-safety.js';
 import { skillCodexHome } from './skill-home.js';
 import type {
   ProvenanceClaim, ProvenanceEvidence, ProvenanceFields, SkillInstallation,
@@ -81,8 +82,7 @@ async function noLinks(path: string, diag: ProvenanceDiagnostics): Promise<boole
   let current = root;
   for (const part of absolute.slice(root.length).split(/[/\\]/).filter(Boolean)) {
     current = join(current, part);
-    const stat = await lstat(current);
-    if (stat.isSymbolicLink()) { diag.skippedLinks++; return false; }
+    if (await isLinkComponent(current)) { diag.skippedLinks++; return false; }
   }
   return true;
 }

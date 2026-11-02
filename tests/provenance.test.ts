@@ -173,6 +173,9 @@ test('directories and explicit roots using junctions/symlinks are not followed',
   const linkedRoot = await collectSkillProvenance([], { skillRoot: join(skillRoot, 'linked'), observedAt });
   assert.equal(linkedRoot.inventory.length, 0);
   assert.equal(linkedRoot.diagnostics.skippedLinks, 1);
+  const nestedRoot = await collectSkillProvenance([], { skillRoot: join(skillRoot, 'linked', 'secret'), observedAt });
+  assert.equal(nestedRoot.inventory.length, 0);
+  assert.equal(nestedRoot.diagnostics.skippedLinks, 1);
 });
 
 test('ambiguous YAML keys, duplicate metadata forms and non-string scalars never assert authorship', async t => {

@@ -2,6 +2,7 @@ import { lstat, open, readdir, mkdir, rename, unlink } from 'node:fs/promises';
 import { resolve, dirname, parse, join, isAbsolute, win32 } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { parseSkillPackage, fail, id, object } from './skill-evidence.js';
+import { isLinkComponent } from './path-safety.js';
 import type { SkillEvidencePackage } from './skill-evidence-types.js';
 
 export const MAX_SKILL_BYTES = 8 * 1024 * 1024;
@@ -10,8 +11,7 @@ export async function noLinks(path: string): Promise<void> {
   let current=root;
   for(const part of abs.slice(root.length).split(/[\\/]/).filter(Boolean)) {
     current=join(current,part);
-    const stat=await lstat(current);
-    if(stat.isSymbolicLink()) fail('file.link');
+    if(await isLinkComponent(current)) fail('file.link');
   }
 }
 export async function readSkillText(path: string, max=MAX_SKILL_BYTES): Promise<string> {
